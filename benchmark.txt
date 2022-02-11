@@ -1,0 +1,17 @@
+Comando loadbot lanciato sul client
+go run main.go loadbot  --url http://192.168.1.54:10001 --grpc 192.168.1.54:10000 --account 0xFb3a2e25724D42b982634Dd060A026C458d67418 --chainid 101 --count 1000 --value 0x100 --tps 200
+[LOADBOT RUN]
+Transactions submitted = 1000
+Transactions failed    = 0
+Duration               = 5.002230514s
+
+Risposte comparse sul nodo
+2021-12-06T09:22:43.036Z [ERROR] polygon.txpool: failed to add broadcasted txn: err="nonce too low"
+
+JSON-RPC per verificare quante transazioni risultano fatte dall'indirizzo
+Req: curl 192.168.1.54:10001 -X POST --data '{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["0xFb3a2e25724D42b982634Dd060A026C458d67418","latest"],"id":1}'
+Res: {"jsonrpc":"2.0","id":1,"result":"0x3e8"}
+
+JSON-RPC per verificare bilancio del client
+Req: curl 192.168.1.54:10001 -X POST --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xFb3a2e25724D42b982634Dd060A026C458d67418","latest"],"id":1}'
+Res: {"jsonrpc":"2.0","id":1,"result":"0x3635c999beeaa00000"}
