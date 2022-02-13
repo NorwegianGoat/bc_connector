@@ -11,7 +11,7 @@ class UFW():
     def __init__(self):
         self.is_present = UFW._ufw_check()
         if self.is_present:
-            UFW._ufw_enable()
+            self.ufw_enable()
 
     def _ufw_check() -> bool:
         is_present = subprocess.run(
@@ -21,8 +21,11 @@ class UFW():
         is_present = not is_present.returncode
         return is_present
 
-    def _ufw_enable():
+    def ufw_enable(self):
         subprocess.run(["sudo", "ufw", "enable"])
+
+    def ufw_disable(self):
+        subprocess.run(["sudo", "ufw", "disable"])
 
     def alter_config(self, action: str, ip: str):
         try:
