@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 N0_C0_URL = "http://192.168.1.110:8545"
 N0_C1_URL = "http://192.168.1.120:8545"
 N0_C2_URL = "http://192.168.1.130:8545"
-WAIT = 1
+WAIT = 30
 
 
 def _alter_connections():
