@@ -1,6 +1,6 @@
 import time
 import logging
-from utils.ufw_mod import UFW, BLOCK, UNBLOCK
+from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
 from model.eth_account import EthAcc
 from model.node import Node
@@ -16,10 +16,10 @@ WAIT = 1
 def _alter_connections():
     ip = urlparse(n0.get_endpoint()).hostname
     for i in range(0, 10):
-        ufw.alter_config(BLOCK, ip)
+        ufw.alter_config(REJECT, ip)
         ct.drop(ip)
         time.sleep(WAIT)
-        ufw.alter_config(UNBLOCK, ip)
+        ufw.alter_config(ALLOW, ip)
         time.sleep(WAIT)
     ufw.ufw_disable()
 

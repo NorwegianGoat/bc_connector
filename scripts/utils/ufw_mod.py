@@ -4,8 +4,9 @@ import argparse
 import logging
 from utils.sys_mod import check_package
 
-BLOCK = "block"
-UNBLOCK = "unblock"
+DENY = "deny"
+REJECT = "reject"
+ALLOW = "allow"
 
 
 class UFW():
@@ -28,10 +29,14 @@ class UFW():
         except ValueError:
             exit(ip + " is not an ip address.")
         logging.info(action + " " + ip)
-        if action == BLOCK:
-            subprocess.run(["sudo", "ufw", 'reject', 'out', 'to', ip])
-        elif action == UNBLOCK:
-            subprocess.run(["sudo", "ufw", 'allow', 'out', 'to', ip])
+        if action == DENY:
+            subprocess.run(["sudo", "ufw", DENY, 'out', 'to', ip])
+        elif action == REJECT:
+            subprocess.run(["sudo", "ufw", REJECT, 'out', 'to', ip])
+        elif action == ALLOW:
+            subprocess.run(["sudo", "ufw", ALLOW, 'out', 'to', ip])
+        else:
+            exit("Action " + action + "not implemented.")
 
 if __name__ == "__main__":
     # Logging setup
