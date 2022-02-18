@@ -2,7 +2,7 @@ import ipaddress
 import subprocess
 import argparse
 import logging
-from sys_mod import check_package
+from utils.sys_mod import check_package
 
 
 class ConnTrack():
@@ -16,6 +16,7 @@ class ConnTrack():
             ipaddress.ip_address(ip)
         except ValueError:
             exit(ip + " is not an ip address.")
+        logging.info("Dopping existing connection to " + ip)
         subprocess.run(["sudo", "conntrack", "-D", "-d", ip])
 
 

@@ -2,7 +2,7 @@ import ipaddress
 import subprocess
 import argparse
 import logging
-from sys_mod import check_package
+from utils.sys_mod import check_package
 
 BLOCK = "block"
 UNBLOCK = "unblock"
@@ -13,6 +13,8 @@ class UFW():
         self.is_installed = check_package("ufw")
         if self.is_installed:
             self.ufw_enable()
+        else:
+            exit("ufw seems not to be installed, can't do anything.")
 
     def ufw_enable(self):
         subprocess.run(["sudo", "ufw", "enable"])
@@ -25,15 +27,11 @@ class UFW():
             ipaddress.ip_address(ip)
         except ValueError:
             exit(ip + " is not an ip address.")
-        if self.is_installed:
-            logging.info(action + " " + ip)
-            if action == BLOCK:
-                subprocess.run(["sudo", "ufw", 'deny', 'out', 'to', ip])
-            elif action == UNBLOCK:
-                subprocess.run(["sudo", "ufw", 'allow', 'out', 'to', ip])
-        else:
-            exit("ufw seems not to be installed, can't do anything.")
-
+        logging.info(action + " " + ip)
+        if action == BLOCK:
+            subprocess.run(["sudo", "ufw", 'deny', 'out', 'to', ip])
+        elif action == UNBLOCK:
+            subprocess.run(["sudo", "ufw", 'allow', 'out', 'to', ip])
 
 if __name__ == "__main__":
     # Logging setup

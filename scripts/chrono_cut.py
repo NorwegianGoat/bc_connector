@@ -1,6 +1,7 @@
 import time
 import logging
 from utils.ufw_mod import UFW, BLOCK, UNBLOCK
+from utils.conntrack_mod import ConnTrack
 from model.eth_account import EthAcc
 from model.node import Node
 from urllib.parse import urlparse
@@ -12,11 +13,13 @@ N0_C2_URL = "http://192.168.1.130:8545"
 WAIT = 1
 
 
-def _alter_fw():
+def _alter_connections():
+    ip = urlparse(n0.get_endpoint()).hostname
     for i in range(0, 10):
-        ufw.alter_config(BLOCK, urlparse(n0.get_endpoint()).hostname)
+        ufw.alter_config(BLOCK, ip)
+        ct.drop(ip)
         time.sleep(WAIT)
-        ufw.alter_config(UNBLOCK, urlparse(n0.get_endpoint()).hostname)
+        ufw.alter_config(UNBLOCK, ip)
         time.sleep(WAIT)
     ufw.ufw_disable()
 
@@ -32,4 +35,5 @@ if __name__ == "__main__":
         "1cc24d8d38497d3257350b106e50f8093d1285cc691f45dd6e68ee601756ce43")
     logging.info("Starting chrono ufw alter script.")
     ufw = UFW()
-    _alter_fw()
+    ct = ConnTrack()
+    _alter_connections()
