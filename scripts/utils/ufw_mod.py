@@ -29,7 +29,7 @@ class UFW():
             exit(ip + " is not an ip address.")
         logging.info(action + " " + ip)
         if action == BLOCK:
-            subprocess.run(["sudo", "ufw", 'deny', 'out', 'to', ip])
+            subprocess.run(["sudo", "ufw", 'reject', 'out', 'to', ip])
         elif action == UNBLOCK:
             subprocess.run(["sudo", "ufw", 'allow', 'out', 'to', ip])
 
