@@ -2,6 +2,7 @@ import ipaddress
 import subprocess
 import argparse
 import logging
+from sys_mod import check_package
 
 BLOCK = "block"
 UNBLOCK = "unblock"
@@ -9,17 +10,9 @@ UNBLOCK = "unblock"
 
 class UFW():
     def __init__(self):
-        self.is_present = UFW._ufw_check()
-        if self.is_present:
+        self.is_installed = check_package("ufw")
+        if self.is_installed:
             self.ufw_enable()
-
-    def _ufw_check() -> bool:
-        is_present = subprocess.run(
-            ["dpkg", "-s", "ufw"], stdout=subprocess.DEVNULL)
-        # is_present = 0 if ufw is present, is_present = 1 if ufw is not
-        # installed so we need to "invert" the process exit code
-        is_present = not is_present.returncode
-        return is_present
 
     def ufw_enable(self):
         subprocess.run(["sudo", "ufw", "enable"])
@@ -32,7 +25,7 @@ class UFW():
             ipaddress.ip_address(ip)
         except ValueError:
             exit(ip + " is not an ip address.")
-        if self.is_present:
+        if self.is_installed:
             logging.info(action + " " + ip)
             if action == BLOCK:
                 subprocess.run(["sudo", "ufw", 'deny', 'out', 'to', ip])
