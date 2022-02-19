@@ -50,9 +50,9 @@ if __name__ == "__main__":
     # Configuring test accounts
     acc = EthAcc(
         "1cc24d8d38497d3257350b106e50f8093d1285cc691f45dd6e68ee601756ce43")
-    # Configuring Chainbridge wrapper
+    # Configuring wrappers
     cb = CBWrapper()
-    logging.info("Starting chrono ufw alter script.")
     ufw = UFW()
     ct = ConnTrack()
+    logging.info("Starting tests.")
     tests()

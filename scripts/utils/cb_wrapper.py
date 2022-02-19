@@ -1,5 +1,5 @@
 import subprocess
-from sys_mod import check_program
+from utils.sys_mod import check_program
 
 
 class CBWrapper():
