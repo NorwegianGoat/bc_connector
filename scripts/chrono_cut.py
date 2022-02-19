@@ -17,6 +17,8 @@ SOURCE_NFT_ADDR = '0xC671538D5A6BccAe6cB931008fFC45F9328290fd'
 SOURCE_NFT_HANDLER = '0xAA0ED9D26180Ea1B80731F2A6f65c2eAA1809251'
 SOURCE_BRIDGE_ADDR = '0x8c93A7aab57B43fA0fFa0C5b69500C70e7e58CA7'
 RESOURCE_ID = '0x000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00'# Binds the tokens between the two chains
+# Pkey path
+PKEY_PATH = 'crosscoin/.secret'
 
 
 def block_connection(ip: str):
@@ -48,8 +50,9 @@ if __name__ == "__main__":
     n1 = Node(N0_C1_URL, 200)
     n2 = Node(N0_C2_URL, 300)
     # Configuring test accounts
-    acc = EthAcc(
-        "1cc24d8d38497d3257350b106e50f8093d1285cc691f45dd6e68ee601756ce43")
+    with open(PKEY_PATH) as f:
+        key = f.read()
+    acc = EthAcc(key)
     # Configuring wrappers
     cb = CBWrapper()
     ufw = UFW()
