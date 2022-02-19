@@ -32,9 +32,9 @@ def unblock_connection(ip: str):
 
 def simple_erc721_transfer():
     logging.info("Simple erc721 transfer started.")
-    cb.approve721(n0.get_endpoint(), acc.get_pkey(), 1000000, 1,
+    cb.approve721(n0.get_endpoint(), acc.get_pkey(), 1000000, 100,
                   SOURCE_NFT_ADDR, SOURCE_NFT_HANDLER)
-    cb.deposit721(n0.get_endpoint(), acc.get_pkey(), 1000000, 1,
+    cb.deposit721(n0.get_endpoint(), acc.get_pkey(), 1000000, 100,
                   101, SOURCE_BRIDGE_ADDR, acc.get_address(), RESOURCE_ID)
 
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     n2 = Node(N0_C2_URL, 300)
     # Configuring test accounts
     with open(PKEY_PATH) as f:
-        key = f.read()
+        key = f.readline().strip()
     acc = EthAcc(key)
     # Configuring wrappers
     cb = CBWrapper()
