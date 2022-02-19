@@ -6,18 +6,13 @@ from model.eth_account import EthAcc
 from model.node import Node
 from urllib.parse import urlparse
 from utils.cb_wrapper import CBWrapper
+from model.bc_resources import C0_NFT_HANDLER, C0_NFT, C0_BRIDGE_ADDRESS, C0_ERC20, RESOURCE_ID_NFT
 
 # Endpoints
 N0_C0_URL = "http://192.168.1.110:8545"
 N0_C1_URL = "http://192.168.1.120:8545"
 N0_C2_URL = "http://192.168.1.130:8545"
 WAIT = 30
-# Blockchain addresses and data
-SOURCE_NFT_ADDR = '0xC671538D5A6BccAe6cB931008fFC45F9328290fd'
-SOURCE_NFT_HANDLER = '0xAA0ED9D26180Ea1B80731F2A6f65c2eAA1809251'
-SOURCE_BRIDGE_ADDR = '0x8c93A7aab57B43fA0fFa0C5b69500C70e7e58CA7'
-RESOURCE_ID = '0x000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00'# Binds the tokens between the two chains
-# Pkey path
 PKEY_PATH = 'crosscoin/.secret'
 
 
@@ -32,14 +27,33 @@ def unblock_connection(ip: str):
 
 def simple_erc721_transfer():
     logging.info("Simple erc721 transfer started.")
-    cb.approve721(n0.get_endpoint(), acc.get_pkey(), 1000000, 100,
-                  SOURCE_NFT_ADDR, SOURCE_NFT_HANDLER)
-    cb.deposit721(n0.get_endpoint(), acc.get_pkey(), 1000000, 100,
-                  101, SOURCE_BRIDGE_ADDR, acc.get_address(), RESOURCE_ID)
+    cb.approve721(n0.get_endpoint(), acc.get_pkey(), 1000000, 1,
+                  C0_NFT, C0_NFT_HANDLER)
+    cb.deposit721(n0.get_endpoint(), acc.get_pkey(), 1000000, 1,
+                  101, C0_BRIDGE_ADDRESS, acc.get_address(), RESOURCE_ID_NFT)
+
+
+def simple_erc20_transfer():
+    logging.info("Simple erc20 transfer started.")
+
+
+def erc20_transfer_conn_lock():
+    logging.info("Erc20 transfer with connection lock.")
+    ip1 = urlparse(n1.get_endpoint()).hostname
+    # Connection to dest chain is blocked
+    block_connection(ip1)
+    # Basic erc20 transfer is fired, but destination is currently unreachable
+    simple_erc20_transfer()
+    # We block source chain and then unblock destination
+    ip0 = urlparse(n0.get_endpoint()).hostname
+    block_connection(ip0)
+    unblock_connection(ip1)
 
 
 def tests():
-    simple_erc721_transfer()
+    # simple_erc721_transfer()
+    simple_erc20_transfer()
+    # erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
 
@@ -53,7 +67,7 @@ if __name__ == "__main__":
     with open(PKEY_PATH) as f:
         key = f.readline().strip()
     acc = EthAcc(key)
-    # Configuring wrappers
+    # Configuring wrappers for commands execution
     cb = CBWrapper()
     ufw = UFW()
     ct = ConnTrack()
