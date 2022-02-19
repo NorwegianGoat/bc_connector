@@ -130,3 +130,5 @@ dmypy.json
 
 # Extra
 chainbridge_config.sh
+.secret
+node_modules

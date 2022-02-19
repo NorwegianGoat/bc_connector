@@ -16,7 +16,7 @@ class ConnTrack():
             ipaddress.ip_address(ip)
         except ValueError:
             exit(ip + " is not an ip address.")
-        logging.info("Dopping existing connection to " + ip)
+        logging.info("Dropping existing connection to " + ip)
         subprocess.run(["sudo", "conntrack", "-D", "-d", ip])
 
 
