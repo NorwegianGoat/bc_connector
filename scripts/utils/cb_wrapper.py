@@ -46,7 +46,7 @@ class CBWrapper():
         params = self._basic_config(gateway, pkey, gas)
         params.insert(1, "erc721")
         params.insert(2, 'approve')
-        params += ['--tokenId', str(int(token_id, base=16)), '--erc721Address', erc721_addr,
+        params += ['--tokenId', str(hex(token_id)), '--erc721Address', erc721_addr,
                    '--recipient', recipient]
         subprocess.call(params)
 
@@ -56,6 +56,6 @@ class CBWrapper():
         params = self._basic_config(gateway, pkey, gas)
         params.insert(1, "erc721")
         params.insert(2, 'deposit')
-        params += ['--tokenId', str(int(token_id, base=16)), '--dest', str(dest),
+        params += ['--tokenId', str(hex(token_id)), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
         subprocess.call(params)
