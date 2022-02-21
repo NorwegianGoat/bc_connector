@@ -34,7 +34,7 @@ class CBWrapper():
         if CBContracs.BRIDGE in contracts_to_deploy:
             params.append('--relayers')
             params += relayer_addresses
-            params += ['--relayerThreshold ',
+            params += ['--relayerThreshold',
                        str(relayer_threshold), " --chainId ", str(chain_id)]
         subprocess.call(params)
 
