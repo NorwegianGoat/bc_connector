@@ -3,7 +3,7 @@ from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
 from model.node import Node
 from urllib.parse import urlparse
-from utils.cb_wrapper import CBContracs, CBWrapper
+from utils.cb_wrapper import CBContracts, CBWrapper
 from model.bc_resources import C0_NFT_HANDLER, C0_NFT, C0_BRIDGE_ADDRESS, C0_ERC20, RESOURCE_ID_NFT
 from utils.cc_redeem import redeem_tokens
 
@@ -59,7 +59,7 @@ def tests():
     # simple_erc721_transfer()
     # simple_erc20_transfer()
     # erc20_transfer_conn_lock()
-    cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [CBContracs.BRIDGE, CBContracs.ERC20_HANDLER],[acc.address], 1, 100)
+    cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER],[acc.address], 1, 100)
     #cb.register_resource(n0.get_endpoint(), acc.key.hex(), 10000000, C0_BRIDGE_ADDRESS, )
     #cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracs.ERC20_HANDLER, CBContracs.ERC20],[acc.address], 1, 101)
 

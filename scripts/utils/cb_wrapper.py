@@ -4,7 +4,7 @@ from utils.sys_mod import check_program
 from enum import Enum
 
 
-class CBContracs(str, Enum):
+class CBContracts(str, Enum):
     BRIDGE = "bridge"
     ERC20_HANDLER = "erc20Handler"
     ERC20 = "erc20"
@@ -26,12 +26,12 @@ class CBWrapper():
         return ['cb-sol-cli', '--url', gateway, '--privateKey',
                 pkey, '--gasPrice', str(gas)]
 
-    def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[CBContracs],
+    def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[CBContracts],
                relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
         params = self._basic_config(gateway, pkey, gas)
         params.append('deploy')
         params += ["--"+contract for contract in contracts_to_deploy]
-        if CBContracs.BRIDGE in contracts_to_deploy:
+        if CBContracts.BRIDGE in contracts_to_deploy:
             params.append('--relayers')
             params += relayer_addresses
             params += ['--relayerThreshold',
