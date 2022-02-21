@@ -4,7 +4,7 @@ from utils.sys_mod import check_program
 from enum import Enum
 
 
-class CBContracs(Enum):
+class CBContracs(str, Enum):
     BRIDGE = "bridge"
     ERC20_HANDLER = "erc20Handler"
     ERC20 = "erc20"
