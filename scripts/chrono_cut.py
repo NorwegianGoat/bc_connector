@@ -59,7 +59,7 @@ def tests():
     # simple_erc721_transfer()
     # simple_erc20_transfer()
     # erc20_transfer_conn_lock()
-    cb.deploy(n0.get_endpoint(), acc.key.hex(), 10000000, [CBContracs.ERC20_HANDLER],[acc.address], 1, 100)
+    cb.deploy(n0.get_endpoint(), acc.key.hex(), 10000000, [CBContracs.ERC20_HANDLER],[acc.address[2:]], 1, 100)
     #cb.register_resource(n0.get_endpoint(), acc.key.hex(), 10000000, C0_BRIDGE_ADDRESS, )
     #cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracs.ERC20_HANDLER, CBContracs.ERC20],[acc.address], 1, 101)
 
