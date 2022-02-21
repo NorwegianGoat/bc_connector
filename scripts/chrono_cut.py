@@ -1,12 +1,11 @@
-import time
 import logging
 from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
-from model.eth_account import EthAcc
 from model.node import Node
 from urllib.parse import urlparse
 from utils.cb_wrapper import CBWrapper
 from model.bc_resources import C0_NFT_HANDLER, C0_NFT, C0_BRIDGE_ADDRESS, C0_ERC20, RESOURCE_ID_NFT
+from utils.cc_redeem import redeem_tokens
 
 # Endpoints
 N0_C0_URL = "http://192.168.1.110:8545"
@@ -34,7 +33,8 @@ def simple_erc721_transfer():
 
 
 def simple_erc20_transfer():
-    logging.info("Simple erc20 transfer started.")
+    logging.info("Transferring erc20 tokens")
+    redeem_tokens(n0.provider, acc, 100)
 
 
 def erc20_transfer_conn_lock():
@@ -53,7 +53,7 @@ def erc20_transfer_conn_lock():
 def tests():
     # simple_erc721_transfer()
     simple_erc20_transfer()
-    # erc20_transfer_conn_lock()
+    erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
 
@@ -66,7 +66,8 @@ if __name__ == "__main__":
     # Configuring test accounts
     with open(PKEY_PATH) as f:
         key = f.readline().strip()
-    acc = EthAcc(key)
+    acc = n0.provider.eth.account.from_key(key)
+    logging.info("Imported account:" + acc.address)
     # Configuring wrappers for commands execution
     cb = CBWrapper()
     ufw = UFW()
