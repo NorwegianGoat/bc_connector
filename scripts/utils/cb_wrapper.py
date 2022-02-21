@@ -1,5 +1,15 @@
 import subprocess
+from typing import List
 from utils.sys_mod import check_program
+from enum import Enum
+
+
+class CBContracs(Enum):
+    BRIDGE = "bridge"
+    ERC20_HANDLER = "erc20Handler"
+    ERC20 = "erc20"
+    ERC721_HANDLER = "erc721Handler"
+    ERC721 = "erc721"
 
 
 class CBWrapper():
@@ -15,6 +25,26 @@ class CBWrapper():
     def _basic_config(self, gateway: str, pkey: str, gas: int):
         return ['cb-sol-cli', '--url', gateway, '--privateKey',
                 pkey, '--gasPrice', str(gas)]
+
+    def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[CBContracs],
+               relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
+        params = self._basic_config(gateway, pkey, gas)
+        params.append('deploy')
+        params += ["--"+contract for contract in contracts_to_deploy]
+        if CBContracs.BRIDGE in contracts_to_deploy:
+            params.append('--relayers')
+            params += relayer_addresses
+            params.append('--relayerThreshold ' +
+                          str(relayer_threshold) + " --chainId " + str(chain_id))
+        subprocess.call(params)
+
+    def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
+                          handler_addr: str, resource_id: str, target_contract: str):
+        params = self._basic_config(gateway, pkey, gas)
+        params += ['bridge', 'register-resource',
+                   bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
+                   '--targetContract', target_contract]
+        subprocess.call(params)
 
     def approve20(self, gateway: str, pkey: str, gas: int, amount: int, erc20_addr: str,
                   recipient: str):
