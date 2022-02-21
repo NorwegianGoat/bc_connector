@@ -34,8 +34,8 @@ class CBWrapper():
         if CBContracs.BRIDGE in contracts_to_deploy:
             params.append('--relayers')
             params += relayer_addresses
-            params.append('--relayerThreshold ' +
-                          str(relayer_threshold) + " --chainId " + str(chain_id))
+            params += ['--relayerThreshold ',
+                       str(relayer_threshold), " --chainId ", str(chain_id)]
         subprocess.call(params)
 
     def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
