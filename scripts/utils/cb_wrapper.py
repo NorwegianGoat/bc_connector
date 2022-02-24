@@ -42,8 +42,9 @@ class CBWrapper():
     def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
                           handler_addr: str, resource_id: str, target_contract: str):
         params = self._basic_config(gateway, pkey, gas)
-        params += ['bridge', 'register-resource', '--bridge',
-                   bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
+        params.insert(1, 'bridge')
+        params.insert(2, 'register-resource')
+        params += ['--bridge', bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
                    '--targetContract', target_contract]
         subprocess.call(params)
 
