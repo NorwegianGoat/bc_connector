@@ -53,9 +53,9 @@ def simple_erc20_transfer(amount: int):
     logging.info("Transferring " + str(amount) + " erc20 tokens")
     redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
     # Approves the erc20 handler to manage the amount of tokens
-    cb.approve20(n0.get_endpoint(), acc.key.hex()[2:0],
+    cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
                  100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
-    cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:0], 100000, n0.provider.toWei(10, 'ether'), 101,
+    cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 101,
                  C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
 
 
