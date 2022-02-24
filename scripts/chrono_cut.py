@@ -38,7 +38,7 @@ def deploy_bridge():
     # Bridge creation
     cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
-    cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [
+    cb.deploy(n1.get_endpoint(), acc.key.hex()[2:], 10000000, [
               CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
     # print("Now you should update your bc_resources file and config.json file on chainbridge")
     # Register resource
