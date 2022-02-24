@@ -74,8 +74,8 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    deploy_bridge()
-    # simple_erc20_transfer(10)
+    # deploy_bridge()
+    simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
