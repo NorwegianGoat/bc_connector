@@ -37,7 +37,7 @@ class CBWrapper():
             params.append('--relayers')
             params += relayer_addresses
             params += ['--relayerThreshold',
-                       str(relayer_threshold), " --chainId ", str(chain_id)]
+                       str(relayer_threshold), "--chainId", str(chain_id)]
         subprocess.call(params)
 
     def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,

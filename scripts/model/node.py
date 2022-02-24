@@ -25,3 +25,7 @@ class Node():
 
     def __str__(self) -> str:
         return "Endpoint: " + self.node_endpoint + " Chain Id: " + self.chain_id
+
+if __name__=="__main__":
+    n = Node("http://192.168.1.110:8545",100)
+    print(n.provider.eth.chain_id)
