@@ -35,14 +35,16 @@ def simple_erc721_transfer():
 
 
 def deploy_bridge():
-    # Create bridge on source
+    # Bridge creation
     cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
-    cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-        2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+os.getrandom(32).hex(), C0_ERC20)
-    # Connect destination
-    # cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
-    #          CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
+    cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
+              CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
+    print("Now you should update your bc_resources file and config.json file on chainbridge")
+    # Register resource
+    resource_id = '0x'+os.getrandom(32).hex()
+    #cb.register_resource(n0.get_endpoint(), acc.key.hex()[
+    #    2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, RESOURCE_ID_ERC20, C0_ERC20)
     # cb.register_resource(n1.get_endpoint(), acc.key.hex()[
     #    2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
 
@@ -72,8 +74,8 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    # deploy_bridge()
-    simple_erc20_transfer(10)
+    deploy_bridge()
+    # simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
