@@ -2,6 +2,7 @@ import subprocess
 from typing import List
 from utils.sys_mod import check_program
 from enum import Enum
+import logging
 
 
 class CBContracts(str, Enum):
@@ -41,7 +42,7 @@ class CBWrapper():
     def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
                           handler_addr: str, resource_id: str, target_contract: str):
         params = self._basic_config(gateway, pkey, gas)
-        params += ['bridge', 'register-resource',
+        params += ['bridge', 'register-resource', '--bridge',
                    bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
                    '--targetContract', target_contract]
         subprocess.call(params)
