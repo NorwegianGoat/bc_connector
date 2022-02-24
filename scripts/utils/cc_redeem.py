@@ -28,7 +28,7 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int):
               "gasPrice": w3.toWei(10, "gwei"),
               "gas": 100000}
     tx = contract.functions.mint(
-        account.address, w3.toWei(quantity, 'ether')).buildTransaction(t_dict)
+        account.address, quantity).buildTransaction(t_dict)
     signed_tx = w3.eth.account.sign_transaction(tx, account.key)
     tx_hash = w3.eth.send_raw_transaction(
         signed_tx.rawTransaction)

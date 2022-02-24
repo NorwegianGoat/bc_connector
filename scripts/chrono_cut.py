@@ -34,12 +34,12 @@ def simple_erc721_transfer():
                   101, C0_BRIDGE_ADDRESS, acc.get_address(), RESOURCE_ID_NFT)
 
 
-def simple_erc20_transfer():
-    logging.info("Transferring erc20 tokens")
-    redeem_tokens(n0.provider, acc, 10)
+def simple_erc20_transfer(amount: int):
+    logging.info("Transferring " + str(amount) + " erc20 tokens")
+    redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
     cb.approve20(n0.get_endpoint(), acc.key.hex(),
-                 100000, 10, C0_ERC20, C0_ERC20_HANDLER)
-    cb.deposit20(n0.get_endpoint(), acc.key.hex(), 100000, 10, 101,
+                 100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
+    cb.deposit20(n0.get_endpoint(), acc.key.hex(), 100000, n0.provider.toWei(10, 'ether'), 101,
                  C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
 
 
@@ -68,7 +68,7 @@ def tests():
     #          CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
     # cb.register_resource(n1.get_endpoint(), acc.key.hex()[
     #    2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
-    simple_erc20_transfer()
+    simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
