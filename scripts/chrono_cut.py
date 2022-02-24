@@ -31,7 +31,7 @@ def simple_erc721_transfer():
     cb.approve721(n0.get_endpoint(), acc.get_pkey(), 1000000, 1,
                   C0_NFT, C0_NFT_HANDLER)
     cb.deposit721(n0.get_endpoint(), acc.get_pkey(), 1000000, 1,
-                  101, C0_BRIDGE_ADDRESS, acc.get_address(), RESOURCE_ID_NFT)
+                  45, C0_BRIDGE_ADDRESS, acc.get_address(), RESOURCE_ID_NFT)
 
 
 def deploy_bridge():
@@ -39,7 +39,7 @@ def deploy_bridge():
     cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
     cb.deploy(n1.get_endpoint(), acc.key.hex()[2:], 10000000, [
-              CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
+              CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 45)
     # print("Now you should update your bc_resources file and config.json file on chainbridge")
     # Register resource
     #resource_id = '0x'+os.getrandom(32).hex()
@@ -55,7 +55,7 @@ def simple_erc20_transfer(amount: int):
     # Approves the erc20 handler to manage the amount of tokens
     cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
                  100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
-    cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 101,
+    cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 45,
                  C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
 
 
