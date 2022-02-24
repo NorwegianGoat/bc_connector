@@ -38,8 +38,9 @@ def deploy_bridge():
     # Create bridge on source
     cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
+    # RESOURCE_ID_ERC20 = '0x'+os.getrandom(32).hex()
     cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-        2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+os.getrandom(32).hex(), C0_ERC20)
+        2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, RESOURCE_ID_ERC20, C0_ERC20)
     # Connect destination
     # cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
     #          CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
@@ -50,6 +51,7 @@ def deploy_bridge():
 def simple_erc20_transfer(amount: int):
     logging.info("Transferring " + str(amount) + " erc20 tokens")
     redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
+    # Approves the erc20 handler to manage the amount of tokens
     cb.approve20(n0.get_endpoint(), acc.key.hex(),
                  100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
     cb.deposit20(n0.get_endpoint(), acc.key.hex(), 100000, n0.provider.toWei(10, 'ether'), 101,
