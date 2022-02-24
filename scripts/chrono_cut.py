@@ -38,9 +38,8 @@ def deploy_bridge():
     # Create bridge on source
     cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
-    # RESOURCE_ID_ERC20 = '0x'+os.getrandom(32).hex()
     cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-        2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, RESOURCE_ID_ERC20, C0_ERC20)
+        2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+os.getrandom(32).hex(), C0_ERC20)
     # Connect destination
     # cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
     #          CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
