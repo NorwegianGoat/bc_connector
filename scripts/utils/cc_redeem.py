@@ -7,7 +7,7 @@ from model.bc_resources import C0_ERC20
 import logging
 import random
 
-CC_ABI_PATH = 'crosscoin/build/contracts/CrossCoin.json'
+CC_ABI_PATH = 'crosscoin/contracts/CrossCoin.json'
 PKEY_PATH = 'crosscoin/.secret'
 
 
