@@ -11,6 +11,7 @@ class CBContracts(str, Enum):
     ERC20 = "erc20"
     ERC721_HANDLER = "erc721Handler"
     ERC721 = "erc721"
+    GENERIC_HANDLER = "genericHandler"
 
 
 class CBWrapper():
