@@ -35,13 +35,12 @@ def simple_erc721_transfer():
 
 
 def simple_erc20_transfer():
-    '''logging.info("Transferring erc20 tokens")
-    # redeem_tokens(n0.provider, acc, 10)
+    logging.info("Transferring erc20 tokens")
+    redeem_tokens(n0.provider, acc, 10)
     cb.approve20(n0.get_endpoint(), acc.key.hex(),
                  100000, 10, C0_ERC20, C0_ERC20_HANDLER)
     cb.deposit20(n0.get_endpoint(), acc.key.hex(), 100000, 10, 101,
-                 C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)'''
-    pass
+                 C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
 
 
 def erc20_transfer_conn_lock():
@@ -59,18 +58,18 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    # simple_erc20_transfer()
-    # erc20_transfer_conn_lock()
-    # Source chain
+    # Create bridge on source
     # cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
     #          CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
     # cb.register_resource(n0.get_endpoint(), acc.key.hex()[
     #                     2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+os.getrandom(32).hex(), C0_ERC20)
-    # Dest chain
+    # Connect destination
     # cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
     #          CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
-    cb.register_resource(n1.get_endpoint(), acc.key.hex()[
-        2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
+    # cb.register_resource(n1.get_endpoint(), acc.key.hex()[
+    #    2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
+    simple_erc20_transfer()
+    # erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
 
