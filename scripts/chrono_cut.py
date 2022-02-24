@@ -4,7 +4,7 @@ from utils.conntrack_mod import ConnTrack
 from model.node import Node
 from urllib.parse import urlparse
 from utils.cb_wrapper import CBContracts, CBWrapper
-from model.bc_resources import C0_NFT_HANDLER, C0_NFT, C0_BRIDGE_ADDRESS, C0_ERC20, RESOURCE_ID_ERC20, RESOURCE_ID_NFT, C0_ERC20_HANDLER
+from model.bc_resources import *
 from utils.cc_redeem import redeem_tokens
 import random
 import os
@@ -36,7 +36,7 @@ def simple_erc721_transfer():
 
 def simple_erc20_transfer():
     '''logging.info("Transferring erc20 tokens")
-    #redeem_tokens(n0.provider, acc, 10)
+    # redeem_tokens(n0.provider, acc, 10)
     cb.approve20(n0.get_endpoint(), acc.key.hex(),
                  100000, 10, C0_ERC20, C0_ERC20_HANDLER)
     cb.deposit20(n0.get_endpoint(), acc.key.hex(), 100000, 10, 101,
@@ -62,15 +62,15 @@ def tests():
     # simple_erc20_transfer()
     # erc20_transfer_conn_lock()
     # Source chain
-    # cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER],[acc.address], 1, 100)
+    # cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
+    #          CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
     # cb.register_resource(n0.get_endpoint(), acc.key.hex()[
     #                     2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+os.getrandom(32).hex(), C0_ERC20)
     # Dest chain
-    cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
-              CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
-    #cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-    #    2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
-
+    # cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracts.BRIDGE,
+    #          CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 101)
+    cb.register_resource(n1.get_endpoint(), acc.key.hex()[
+        2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
     ufw.ufw_disable()
 
 
