@@ -7,6 +7,7 @@ from utils.cb_wrapper import CBContracts, CBWrapper
 from model.bc_resources import C0_NFT_HANDLER, C0_NFT, C0_BRIDGE_ADDRESS, C0_ERC20, RESOURCE_ID_NFT, C0_ERC20_HANDLER
 from utils.cc_redeem import redeem_tokens
 import random
+import os
 
 # Endpoints
 N0_C0_URL = "http://192.168.1.110:8545"
@@ -62,7 +63,7 @@ def tests():
     # erc20_transfer_conn_lock()
     #cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER],[acc.address], 1, 100)
     cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-                         2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+random.randbytes(32).hex(), C0_ERC20)
+                         2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, '0x'+os.getrandom(32).hex(), C0_ERC20)
     #cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [CBContracs.ERC20_HANDLER, CBContracs.ERC20],[acc.address], 1, 101)
 
     ufw.ufw_disable()
