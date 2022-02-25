@@ -41,11 +41,12 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    // development: {
-    //  host: "127.0.0.1",     // Localhost (default: none)
-    //  port: 8545,            // Standard Ethereum port (default: none)
-    //  network_id: "*",       // Any network (default: none)
-    // },
+    local: {
+      provider: () => new HDWalletProvider(pkey, `http://127.0.0.1:8545`),
+      host: "127.0.0.1",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: 5777      // Any network (default: none)
+    },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -73,7 +74,7 @@ module.exports = {
     // }
     goatchain0: {
       provider: () => new HDWalletProvider(pkey, `http://192.168.1.110:8545`),
-      network_id: "*",
+      network_id: 100,
       gas: 5500000,
       confirmations: 2,
       timeoutBlocks: 200,
@@ -81,7 +82,7 @@ module.exports = {
     },
     goatchain1: {
       provider: () => new HDWalletProvider(pkey, `http://192.168.1.120:8545`),
-      network_id: "*",
+      network_id: 45,
       gas: 5500000,
       confirmations: 2,
       timeoutBlocks: 200,

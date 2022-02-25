@@ -53,10 +53,10 @@ def simple_erc20_transfer(amount: int):
     logging.info("Transferring " + str(amount) + " erc20 tokens")
     redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
     # Approves the erc20 handler to manage the amount of tokens
-    cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
-                 100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
-    cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 45,
-                 C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
+    #cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
+    #             100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
+    #cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 45,
+    #            C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
 
 
 def erc20_transfer_conn_lock():
@@ -74,16 +74,17 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    deploy_bridge()
-    # simple_erc20_transfer(10)
+    #deploy_bridge()
+    simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
-    ufw.ufw_disable()
+    #ufw.ufw_disable()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     # Configuring nodes
-    n0 = Node(N0_C0_URL, 100)
+    #n0 = Node(N0_C0_URL, 100)
+    n0 = Node('http://127.0.0.1:8545', 100)
     n1 = Node(N0_C1_URL, 200)
     n2 = Node(N0_C2_URL, 300)
     # Configuring test accounts
@@ -92,8 +93,8 @@ if __name__ == "__main__":
     acc = n0.provider.eth.account.from_key(key)
     logging.info("Imported account:" + acc.address)
     # Configuring wrappers for commands execution
-    cb = CBWrapper()
-    ufw = UFW()
-    ct = ConnTrack()
+    #cb = CBWrapper()
+    #ufw = UFW()
+    #ct = ConnTrack()
     logging.info("Starting tests.")
     tests()
