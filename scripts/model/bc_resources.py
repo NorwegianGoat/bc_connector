@@ -1,18 +1,8 @@
 # Chain 0
 import sqlite3
 import time
-C0_BRIDGE_ADDRESS = '0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38'
-C0_ERC20_HANDLER = "0xC671538D5A6BccAe6cB931008fFC45F9328290fd"
-C0_ERC20 = '0x4Aa451d788970B7521BE3A49cA2EebFCb1Aa3c70'
-# Binds the tokens between the two chains
-RESOURCE_ID_NFT = '0x000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00'
+
 RESOURCE_ID_ERC20 = '0x79e5d22d1fd140f502eee0fa2b82fc909562e9b809cb78beffdefccad9717385'
-# Chain 1
-C1_BRIDGE_ADDRESS = '0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38'
-C1_ERC20_HANDLER = "0xC671538D5A6BccAe6cB931008fFC45F9328290fd"
-C1_ERC20 = '0x4Df5040aEe6822815D9Acb9276934102b1A72165'
-
-
 BC_RESOURCES_PATH = 'bc_resources.db'
 
 
@@ -43,5 +33,14 @@ def save_contracts(lines: str, chain: int):
     db.commit()
 
 
-def available_contracts():
-    pass
+def available_contracts(chain: int):
+    db = sqlite3.connect(BC_RESOURCES_PATH)
+    cursor = db.cursor()
+    contracts = cursor.execute(
+        '''SELECT * FROM resources WHERE chain = %i ORDER BY timestamp DESC''' % chain)
+    last_contracts = {}
+    # Parses all contracts keeping only the last of each type
+    for contract in contracts:
+        if not last_contracts.get(contract[1]):
+            last_contracts[contract[1]] = contract[2]
+    return last_contracts

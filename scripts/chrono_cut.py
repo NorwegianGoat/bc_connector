@@ -35,32 +35,38 @@ def simple_erc721_transfer():
 
 
 def deploy_bridge():
-    # Bridge creation
+    # Deploy new bridge on source chain and save it on db
     out = cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, n0.chain_id)
     save_contracts(out.stdout, n0.chain_id)
+    # Deploy new bridge on dest chain and save it on db
     out = cb.deploy(n1.get_endpoint(), acc.key.hex()[2:], 10000000, [
         CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, n1.chain_id)
     save_contracts(out.stdout, n1.chain_id)
-    #contracts = available_contracts()
-    # print("Now you should update your bc_resources file and config.json file on chainbridge")
-    # Register resource
-    #resource_id = '0x'+os.getrandom(32).hex()
-    # cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-    #    2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, RESOURCE_ID_ERC20, C0_ERC20)
-    # cb.register_resource(n1.get_endpoint(), acc.key.hex()[
-    #    2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
-    pass
+    print("Now you should update your config.json file on chainbridge")
+    # Register resource on source and dest chains using the addresses of deployed bridges
+    # TODO: save resource id on db
+    # resource_id = '0x'+os.getrandom(32).hex()
+    contracts = available_contracts(n0.chain_id)
+    logging.info(contracts)
+    cb.register_resource(n0.get_endpoint(), acc.key.hex()[
+        2:], 10000000, contracts['bridge'], contracts['erc20Handler'], RESOURCE_ID_ERC20, contracts['erc20'])
+    contracts = available_contracts(n1.chain_id)
+    logging.info(contracts)
+    cb.register_resource(n1.get_endpoint(), acc.key.hex()[
+        2:], 10000000, contracts['bridge'], contracts['erc20Handler'], RESOURCE_ID_ERC20, contracts['erc20'])
 
 
 def simple_erc20_transfer(amount: int):
     logging.info("Transferring " + str(amount) + " erc20 tokens")
+    # Redeem tokens for this test
     redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
     # Approves the erc20 handler to manage the amount of tokens
+    contracts = available_contracts(n0.chain_id)
     cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
-                 100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
+                 100000, n0.provider.toWei(10, 'ether'), contracts['erc20'], contracts['erc20Handler'])
     cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 45,
-                 C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
+                 contracts['bridge'], acc.address, RESOURCE_ID_ERC20)
 
 
 def erc20_transfer_conn_lock():
@@ -79,7 +85,7 @@ def erc20_transfer_conn_lock():
 def tests():
     # simple_erc721_transfer()
     deploy_bridge()
-    # simple_erc20_transfer(10)
+    simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 

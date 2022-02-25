@@ -3,9 +3,8 @@ from web3.providers.base import BaseProvider
 from web3.middleware import geth_poa_middleware
 import json
 import argparse
-from model.bc_resources import C0_ERC20
 import logging
-import random
+from model.bc_resources import available_contracts
 
 CC_ABI_PATH = 'crosscoin/contracts/CrossCoin.json'
 PKEY_PATH = 'crosscoin/.secret'
@@ -20,7 +19,8 @@ def _read_abi():
 def redeem_tokens(w3: BaseProvider, account: Account, quantity: int):
     # Load contract abi
     abi = _read_abi()
-    contract = w3.eth.contract(address=C0_ERC20, abi=abi)
+    erc20_addr = available_contracts(100)['erc20']
+    contract = w3.eth.contract(address=erc20_addr, abi=abi)
     #w3.middleware_onion.inject(geth_poa_middleware, layer=0)
     # Fire redeem transaction
     t_dict = {"chainId": w3.eth.chain_id,
