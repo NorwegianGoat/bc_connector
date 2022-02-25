@@ -36,10 +36,10 @@ def simple_erc721_transfer():
 
 def deploy_bridge():
     # Bridge creation
-    cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
-        CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
-    cb.deploy(n1.get_endpoint(), acc.key.hex()[2:], 10000000, [
-              CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 45)
+    #cb.deploy(n0.get_endpoint(), acc.key.hex()[2:], 10000000, [
+    #    CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, 100)
+    #cb.deploy(n1.get_endpoint(), acc.key.hex()[2:], 10000000, [
+    #          CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, 45)
     # print("Now you should update your bc_resources file and config.json file on chainbridge")
     # Register resource
     #resource_id = '0x'+os.getrandom(32).hex()
@@ -47,16 +47,16 @@ def deploy_bridge():
     #    2:], 10000000, C0_BRIDGE_ADDRESS, C0_ERC20_HANDLER, RESOURCE_ID_ERC20, C0_ERC20)
     #cb.register_resource(n1.get_endpoint(), acc.key.hex()[
     #    2:], 10000000, C1_BRIDGE_ADDRESS, C1_ERC20_HANDLER, RESOURCE_ID_ERC20, C1_ERC20)
-
+    pass
 
 def simple_erc20_transfer(amount: int):
     logging.info("Transferring " + str(amount) + " erc20 tokens")
     redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
     # Approves the erc20 handler to manage the amount of tokens
-    cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
-                 100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
-    cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 45,
-                 C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
+    #cb.approve20(n0.get_endpoint(), acc.key.hex()[2:],
+    #             100000, n0.provider.toWei(10, 'ether'), C0_ERC20, C0_ERC20_HANDLER)
+    #cb.deposit20(n0.get_endpoint(), acc.key.hex()[2:], 100000, n0.provider.toWei(10, 'ether'), 45,
+    #             C0_BRIDGE_ADDRESS, acc.address, RESOURCE_ID_ERC20)
 
 
 def erc20_transfer_conn_lock():
@@ -74,8 +74,8 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    deploy_bridge()
-    # simple_erc20_transfer(10)
+    # deploy_bridge()
+    simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     ufw.ufw_disable()
 
