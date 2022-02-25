@@ -77,13 +77,14 @@ def tests():
     # deploy_bridge()
     simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
-    ufw.ufw_disable()
+    #ufw.ufw_disable()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     # Configuring nodes
-    n0 = Node(N0_C0_URL, 100)
+    #n0 = Node(N0_C0_URL, 100)
+    n0 = Node('http://127.0.0.1:8545', 100)
     n1 = Node(N0_C1_URL, 200)
     n2 = Node(N0_C2_URL, 300)
     # Configuring test accounts
@@ -92,8 +93,8 @@ if __name__ == "__main__":
     acc = n0.provider.eth.account.from_key(key)
     logging.info("Imported account:" + acc.address)
     # Configuring wrappers for commands execution
-    cb = CBWrapper()
-    ufw = UFW()
-    ct = ConnTrack()
+    #cb = CBWrapper()
+    #ufw = UFW()
+    #ct = ConnTrack()
     logging.info("Starting tests.")
     tests()
