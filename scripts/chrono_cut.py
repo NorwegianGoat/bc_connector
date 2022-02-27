@@ -46,15 +46,15 @@ def deploy_bridge():
     print("Now you should update your config.json file on chainbridge")
     # Register resource on source and dest chains using the addresses of deployed bridges
     # TODO: save resource id on db
-    # resource_id = '0x'+os.getrandom(32).hex()
+    resource_id = '0x'+os.getrandom(32).hex()
     contracts = available_contracts(n0.chain_id)
     logging.info(contracts)
     cb.register_resource(n0.get_endpoint(), acc.key.hex()[
-        2:], 10000000, contracts['bridge'], contracts['erc20Handler'], RESOURCE_ID_ERC20, contracts['erc20'])
+        2:], 10000000, contracts['bridge'], contracts['erc20Handler'], resource_id, contracts['erc20'])
     contracts = available_contracts(n1.chain_id)
     logging.info(contracts)
     cb.register_resource(n1.get_endpoint(), acc.key.hex()[
-        2:], 10000000, contracts['bridge'], contracts['erc20Handler'], RESOURCE_ID_ERC20, contracts['erc20'])
+        2:], 10000000, contracts['bridge'], contracts['erc20Handler'], resource_id, contracts['erc20'])
 
 
 def simple_erc20_transfer(amount: int):

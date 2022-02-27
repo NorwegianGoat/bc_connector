@@ -2,7 +2,6 @@
 import sqlite3
 import time
 
-RESOURCE_ID_ERC20 = '0x79e5d22d1fd140f502eee0fa2b82fc909562e9b809cb78beffdefccad9717385'
 BC_RESOURCES_PATH = 'bc_resources.db'
 
 
@@ -31,6 +30,14 @@ def save_contracts(lines: str, chain: int):
         cursor.execute(
             '''INSERT INTO resources(contract,address,chain,timestamp) VALUES ('%s','%s',%i,%i)''' % (contract[0], contract[2], contract[4], contract[6]))
     db.commit()
+
+
+def save_resource_id(reource_id: str, id_source: int, id_dest: int, chain_id: int):
+    db = sqlite3.connect(BC_RESOURCES_PATH)
+    cursor = db.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS resource_id (id INTEGER PRIMARY KEY AUTORINCREMENT, resource_id TEXT, id_source INTEGER, id_dest INTEGER, chain INTEGER, timestamp INTEGER)''')
+    cursor.execute(
+        '''INSERT INTO resource_id(resource_id,id_source,id_dest,chain,timestamp) VALUES ('%s',%i,%i,%i,%i)''') % ()
 
 
 def available_contracts(chain: int):
