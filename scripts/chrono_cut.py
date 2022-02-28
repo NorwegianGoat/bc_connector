@@ -1,4 +1,5 @@
 import logging
+from typing import List
 from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
 from model.node import Node
@@ -34,30 +35,32 @@ def simple_erc721_transfer():
                   45, C0_BRIDGE_ADDRESS, acc.get_address(), RESOURCE_ID_NFT)
 
 
+def _deploy_bridge(endpoint: Node, contracts: List[CBContracts]):
+    # Deploy new bridge on chain and save it on db
+    out = cb.deploy(endpoint.get_endpoint(), acc.key.hex(),
+                    10000000, contracts, [acc.address], 1, endpoint.chain_id)
+    save_contracts(out.stdout, endpoint.chain_id)
+
+
+def _register_resource(endpoint: Node, resource_id:str):
+    # Register resource on source chain and save on local db
+    if not resource_id:
+        resource_id = '0x'+os.getrandom(32).hex()
+    contracts = available_contracts(endpoint.chain_id)
+    logging.info(contracts)
+    cb.register_resource(endpoint.get_endpoint(), acc.key.hex(
+    ), 10000000, contracts['bridge'].address, contracts['erc20Handler'].address, resource_id, contracts['erc20'].address)
+    save_binding(resource_id, contracts['bridge'].id,
+                 contracts['erc20Handler'].id, contracts['erc20'].id, endpoint.chain_id)
+    return resource_id
+
+
 def deploy_bridge():
-    # Deploy new bridge on source chain and save it on db
-    out = cb.deploy(n0.get_endpoint(), acc.key.hex(), 10000000, [
-        CBContracts.BRIDGE, CBContracts.ERC20_HANDLER], [acc.address], 1, n0.chain_id)
-    save_contracts(out.stdout, n0.chain_id)
-    # Deploy new bridge on dest chain and save it on db
-    out = cb.deploy(n1.get_endpoint(), acc.key.hex(), 10000000, [
-        CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20], [acc.address], 1, n1.chain_id)
-    save_contracts(out.stdout, n1.chain_id)
+    _deploy_bridge(n0, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER])
+    _deploy_bridge(n1, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20])
     print("Now you should update your config.json file on chainbridge")
-    # Register resource on source and dest chains
-    resource_id = '0x'+os.getrandom(32).hex()
-    contracts = available_contracts(n0.chain_id)
-    logging.info(contracts)
-    cb.register_resource(n0.get_endpoint(), acc.key.hex(
-    ), 10000000, contracts['bridge'].address, contracts['erc20Handler'].address, resource_id, contracts['erc20'].address)
-    save_binding(resource_id, contracts['bridge'].id,
-                 contracts['erc20Handler'].id, contracts['erc20'].id, n0.chain_id)
-    contracts = available_contracts(n1.chain_id)
-    logging.info(contracts)
-    cb.register_resource(n1.get_endpoint(), acc.key.hex(
-    ), 10000000, contracts['bridge'].address, contracts['erc20Handler'].address, resource_id, contracts['erc20'].address)
-    save_binding(resource_id, contracts['bridge'].id,
-                 contracts['erc20Handler'].id, contracts['erc20'].id, n1.chain_id)
+    res_id_origin = _register_resource(n0, None)
+    _register_resource(n1, res_id_origin)
 
 
 def simple_erc20_transfer(amount: int):

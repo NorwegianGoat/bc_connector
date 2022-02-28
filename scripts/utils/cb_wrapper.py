@@ -38,6 +38,7 @@ class CBWrapper():
             params += relayer_addresses
             params += ['--relayerThreshold',
                        str(relayer_threshold), "--chainId", str(chain_id)]
+        logging.info(params)
         out = subprocess.run(params, capture_output = True )
         print(out.stdout.decode("UTF-8"))
         return out
@@ -49,6 +50,7 @@ class CBWrapper():
         params.insert(2, 'register-resource')
         params += ['--bridge', bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
                    '--targetContract', target_contract]
+        logging.info(params)
         out = subprocess.run(params, capture_output = True)
         print(out.stdout.decode("UTF-8"))
         return out
@@ -60,7 +62,8 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--amount', str(amount), '--erc20Address', erc20_addr,
                    '--recipient', recipient]
-        subprocess.call(params)
+        logging.info(params)
+        subprocess.run(params)
 
     def deposit20(self, gateway: str, pkey: str, gas: int, amount: int, dest: int,
                   bridge: str, recipient: str, resource_id: str):
@@ -69,7 +72,8 @@ class CBWrapper():
         params.insert(2, 'deposit')
         params += ['--amount', str(amount), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
-        subprocess.call(params)
+        logging.info(params)
+        subprocess.run(params)
 
     def approve721(self, gateway: str, pkey: str, gas: int, token_id: int, erc721_addr: str,
                    recipient: str):
@@ -85,7 +89,8 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--id', str(hex(token_id)), '--erc721Address', erc721_addr,
                    '--recipient', recipient]
-        subprocess.call(params)
+        logging.info(params)
+        subprocess.run(params)
 
     def deposit721(self, gateway: str, pkey: str, gas: int, token_id: int, dest: int,
                    bridge: str, recipient: str, resource_id: str):
@@ -95,4 +100,5 @@ class CBWrapper():
         params.insert(2, 'deposit')
         params += ['--id', str(hex(token_id)), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
+        logging.info(params)
         subprocess.call(params)
