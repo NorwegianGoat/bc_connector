@@ -3,7 +3,7 @@ import sqlite3
 import time
 from model.contract import Contract
 
-BC_RESOURCES_PATH = 'bc_resources.db'
+BC_RESOURCES_PATH = 'resources/bc_resources.db'
 
 
 def _parse_blob(lines: bytes, chain: int):

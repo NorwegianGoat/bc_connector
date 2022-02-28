@@ -1,0 +1,30 @@
+{
+  "chains": [
+    {
+      "name": "goatchain0",
+      "type": "ethereum",
+      "id": "100",
+      "endpoint": "http://192.168.1.110:8545",
+      "from": "0x222b8e2152E189f5282249877e039EF2c1c0C826",
+      "opts": {
+        "bridge": "0xb355b0b2c88d0333B77d2D641663AF7888DC26BD",
+        "erc20Handler": "0x8d47fb3c4e09D9CfF2109B460509Eb5477431067",
+        "minGasPrice": "1",
+        "http": "true"
+      }
+    },
+    {
+      "name": "goatchain1",
+      "type": "ethereum",
+      "id": "45",
+      "endpoint": "http://192.168.1.120:8545",
+      "from": "0x222b8e2152E189f5282249877e039EF2c1c0C826",
+      "opts": {
+        "bridge": "0xE13dF9D0E26920e2ad17319462E54087912232fE",
+        "erc20Handler": "0x5be7259A64e83458C953e0199B1b683e7D8F231e",
+        "minGasPrice": "1",
+        "http": "true"
+      }
+    }
+  ]
+}
