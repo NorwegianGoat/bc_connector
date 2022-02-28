@@ -68,7 +68,7 @@ def simple_erc20_transfer(amount: int):
     contracts = available_contracts(n0.chain_id)
     cb.approve20(n0.get_endpoint(), acc.key.hex(), 100000, n0.provider.toWei(
         10, 'ether'), contracts['erc20'].address, contracts['erc20Handler'].address)
-    res_id = available_resources(n0.chain_id, contracts['erc20'])
+    res_id = available_resources(n0.chain_id, contracts['erc20'].id)
     cb.deposit20(n0.get_endpoint(), acc.key.hex(), 100000, n0.provider.toWei(
         10, 'ether'), 45, contracts['bridge'].address, acc.address, res_id)
 
@@ -88,8 +88,8 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    deploy_bridge()
-    # simple_erc20_transfer(10)
+    # deploy_bridge()
+    simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 

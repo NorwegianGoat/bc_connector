@@ -8,7 +8,7 @@ from model.bc_resources import available_contracts
 
 CC_ABI_PATH = 'crosscoin/contracts/CrossCoin.json'
 PKEY_PATH = 'crosscoin/.secret'
-ORIGIN_CONTRACT = available_contracts(100)['erc20']
+ORIGIN_CONTRACT = available_contracts(100)['erc20'].address
 
 
 def _read_abi():
