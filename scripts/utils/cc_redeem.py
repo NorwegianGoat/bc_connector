@@ -8,6 +8,7 @@ from model.bc_resources import available_contracts
 
 CC_ABI_PATH = 'crosscoin/contracts/CrossCoin.json'
 PKEY_PATH = 'crosscoin/.secret'
+ORIGIN_CONTRACT = available_contracts(100)['erc20']
 
 
 def _read_abi():
@@ -19,7 +20,7 @@ def _read_abi():
 def redeem_tokens(w3: BaseProvider, account: Account, quantity: int):
     # Load contract abi
     abi = _read_abi()
-    erc20_addr = available_contracts(100)['erc20']
+    erc20_addr = ORIGIN_CONTRACT
     contract = w3.eth.contract(address=erc20_addr, abi=abi)
     #w3.middleware_onion.inject(geth_poa_middleware, layer=0)
     # Fire redeem transaction

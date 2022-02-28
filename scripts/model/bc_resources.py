@@ -1,6 +1,7 @@
 # Chain 0
 import sqlite3
 import time
+from model.contract import Contract
 
 BC_RESOURCES_PATH = 'bc_resources.db'
 
@@ -32,13 +33,14 @@ def save_contracts(lines: str, chain: int):
     db.commit()
 
 
-def save_resource_id(reource_id: str, id_source: int, id_dest: int, chain_id: int):
+def save_binding(resource_id: str, bridge: str, handler: str, target: str, chain: int):
     db = sqlite3.connect(BC_RESOURCES_PATH)
     cursor = db.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS resource_id (id INTEGER PRIMARY KEY AUTORINCREMENT, resource_id TEXT, id_source INTEGER, id_dest INTEGER, chain INTEGER, timestamp INTEGER)''')
+    ids = available_contracts(chain)
+    cursor.execute('''CREATE TABLE IF NOT EXISTS binding (id INTEGER PRIMARY KEY AUTOINCREMENT, resource_id TEXT, bridge INTEGER, handler INTEGER, target INTEGER,chain INTEGER, timestamp INTEGER)''')
     cursor.execute(
-        '''INSERT INTO resource_id(resource_id,id_source,id_dest,chain,timestamp) VALUES ('%s',%i,%i,%i,%i)''') % ()
-
+        '''INSERT INTO binding(resource_id,bridge,handler,target,chain,timestamp) VALUES ('%s',%i,%i,%i,%i,%i)''' % (resource_id, bridge, handler, target, chain, int(time.time())))
+    db.commit()
 
 def available_contracts(chain: int):
     db = sqlite3.connect(BC_RESOURCES_PATH)
@@ -49,5 +51,10 @@ def available_contracts(chain: int):
     # Parses all contracts keeping only the last of each type
     for contract in contracts:
         if not last_contracts.get(contract[1]):
-            last_contracts[contract[1]] = contract[2]
+            last_contracts[contract[1]] = Contract(contract[0], contract[1], contract[2], contract[3], contract[4])
     return last_contracts
+
+def available_resources(chain_id:int, target:int):
+    db = sqlite3.connect(BC_RESOURCES_PATH)
+    cursor = db.cursor()
+    return cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i''' % (chain_id, target))
