@@ -4,7 +4,7 @@ from utils.conntrack_mod import ConnTrack
 from model.node import Node
 from urllib.parse import urlparse
 from utils.cb_wrapper import CBContracts, CBWrapper
-from model.bc_resources import *
+from utils.resource_manager import *
 from utils.cc_redeem import redeem_tokens
 import random
 import os
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     # Configuring nodes
     n0 = Node(N0_C0_URL)
     n1 = Node(N0_C1_URL)
-    #n2 = Node(N0_C2_URL)
+    n2 = Node(N0_C2_URL)
     # Configuring test accounts
     with open(PKEY_PATH) as f:
         key = f.readline().strip()

@@ -4,7 +4,7 @@ from web3.middleware import geth_poa_middleware
 import json
 import argparse
 import logging
-from model.bc_resources import available_contracts
+from utils.resource_manager import available_contracts
 
 CC_ABI_PATH = 'crosscoin/contracts/CrossCoin.json'
 PKEY_PATH = 'crosscoin/.secret'
