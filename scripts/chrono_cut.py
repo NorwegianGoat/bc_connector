@@ -42,25 +42,36 @@ def _deploy_bridge(endpoint: Node, contracts: List[CBContracts]):
     save_contracts(out.stdout, endpoint.chain_id)
 
 
-def _register_resource(endpoint: Node, resource_id:str):
-    # Register resource on source chain and save on local db
+def _register_resource(endpoint: Node, resource_id: str):
+    # Register resource on chain and save on local db
+    dest_chain_config = True
     if not resource_id:
         resource_id = '0x'+os.getrandom(32).hex()
+        dest_chain_config = False
     contracts = available_contracts(endpoint.chain_id)
     logging.info(contracts)
     cb.register_resource(endpoint.get_endpoint(), acc.key.hex(
     ), 10000000, contracts['bridge'].address, contracts['erc20Handler'].address, resource_id, contracts['erc20'].address)
     save_binding(resource_id, contracts['bridge'].id,
                  contracts['erc20Handler'].id, contracts['erc20'].id, endpoint.chain_id)
+    if dest_chain_config:
+        # If this is a first deploy we are on a destination chain so we need to 
+        # set up the new token as burnable and add the minter
+        cb.burnable(endpoint.get_endpoint(), acc.key.hex(), 10000000,
+                    contracts['bridge'].address, contracts['erc20Handler'].address, contracts['erc20'].address)
+        cb.add_minter(endpoint.get_endpoint(), acc.key.hex(),
+                      10000000, contracts['erc20Handler'].address, contracts['erc20'].address)
     return resource_id
 
 
 def deploy_bridge():
-    _deploy_bridge(n0, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER])
-    _deploy_bridge(n1, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20])
-    print("Now you should update your config.json file on chainbridge")
-    res_id_origin = _register_resource(n0, None)
-    _register_resource(n1, res_id_origin)
+    #_deploy_bridge(n0, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER])
+    #_deploy_bridge(
+    #    n1, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20])
+    # The vulnerability in the whole process is the fact that the user is the ralayer
+    cb.update_config_json()
+    #res_id_origin = _register_resource(n0, None)
+    #_register_resource(n1, res_id_origin)
 
 
 def simple_erc20_transfer(amount: int):
@@ -91,8 +102,8 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    # deploy_bridge()
-    simple_erc20_transfer(10)
+    deploy_bridge()
+    #simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 

@@ -3,7 +3,9 @@ from typing import List
 from utils.sys_mod import check_program
 from enum import Enum
 import logging
+import json
 
+CONFIG_JSON_FILE = 'resources/config.json'
 
 class CBContracts(str, Enum):
     BRIDGE = "bridge"
@@ -28,6 +30,12 @@ class CBWrapper():
         return ['cb-sol-cli', '--url', gateway, '--privateKey',
                 pkey, '--gasPrice', str(gas)]
 
+    def _run_command(self, params):
+        logging.info(params)
+        out = subprocess.run(params, capture_output=True)
+        print(out.stdout.decode("UTF-8"))
+        return out
+
     def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[CBContracts],
                relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
         params = self._basic_config(gateway, pkey, gas)
@@ -38,10 +46,7 @@ class CBWrapper():
             params += relayer_addresses
             params += ['--relayerThreshold',
                        str(relayer_threshold), "--chainId", str(chain_id)]
-        logging.info(params)
-        out = subprocess.run(params, capture_output = True )
-        print(out.stdout.decode("UTF-8"))
-        return out
+        self._run_command(params)
 
     def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
                           handler_addr: str, resource_id: str, target_contract: str):
@@ -50,10 +55,23 @@ class CBWrapper():
         params.insert(2, 'register-resource')
         params += ['--bridge', bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
                    '--targetContract', target_contract]
-        logging.info(params)
-        out = subprocess.run(params, capture_output = True)
-        print(out.stdout.decode("UTF-8"))
-        return out
+        self._run_command(params)
+
+    def burnable(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
+                 handler_addr: str, target_contract: str):
+        params = self._basic_config(gateway, pkey, gas)
+        params.insert(1, 'bridge')
+        params.insert(2, 'set-burn')
+        params += ['--bridge', bridge_addr, '--handler',
+                   handler_addr, '--tokenContract', target_contract]
+        self._run_command(params)
+
+    def add_minter(self, gateway: str, pkey: str, gas: int, minter: str, target_contract: str):
+        params = self._basic_config(gateway, pkey, gas)
+        params.insert(1, 'erc20')
+        params.insert(2, 'add-minter')
+        params += ['--minter', minter, '--erc20Address', target_contract]
+        self._run_command(params)
 
     def approve20(self, gateway: str, pkey: str, gas: int, amount: int, erc20_addr: str,
                   recipient: str):
@@ -62,8 +80,7 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--amount', str(amount), '--erc20Address', erc20_addr,
                    '--recipient', recipient]
-        logging.info(params)
-        subprocess.run(params)
+        self._run_command(params)
 
     def deposit20(self, gateway: str, pkey: str, gas: int, amount: int, dest: int,
                   bridge: str, recipient: str, resource_id: str):
@@ -72,8 +89,7 @@ class CBWrapper():
         params.insert(2, 'deposit')
         params += ['--amount', str(amount), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
-        logging.info(params)
-        subprocess.run(params)
+        self._run_command(params)
 
     def approve721(self, gateway: str, pkey: str, gas: int, token_id: int, erc721_addr: str,
                    recipient: str):
@@ -89,8 +105,7 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--id', str(hex(token_id)), '--erc721Address', erc721_addr,
                    '--recipient', recipient]
-        logging.info(params)
-        subprocess.run(params)
+        self._run_command(params)
 
     def deposit721(self, gateway: str, pkey: str, gas: int, token_id: int, dest: int,
                    bridge: str, recipient: str, resource_id: str):
@@ -100,5 +115,9 @@ class CBWrapper():
         params.insert(2, 'deposit')
         params += ['--id', str(hex(token_id)), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
-        logging.info(params)
-        subprocess.call(params)
+        self._run_command(params)
+
+    def update_config_json(self):
+        with open(CONFIG_JSON_FILE) as f:
+            jsonfile = json.load(f)
+            print(jsonfile)
