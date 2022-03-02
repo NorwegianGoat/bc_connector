@@ -78,5 +78,4 @@ def available_contracts(chain: int, type: ContractTypes):
 def available_resources(chain_id: int, target: int):
     db = sqlite3.connect(BC_RESOURCES_PATH)
     cursor = db.cursor()
-    # TODO: Limitare all'ultimo bridge registrato per questa risorsa su questa chain order by date, limit 0
-    return cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i''' % (chain_id, target)).fetchone()[0]
+    return cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i ORDER BY timestamp DESC LIMIT 1''' % (chain_id, target)).fetchone()[0]
