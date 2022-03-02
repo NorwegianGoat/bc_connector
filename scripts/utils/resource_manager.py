@@ -2,6 +2,7 @@
 import sqlite3
 import time
 from model.contract import Contract
+from scripts.utils.cb_wrapper import CBContracts
 
 BC_RESOURCES_PATH = 'resources/bc_resources.db'
 
@@ -42,7 +43,16 @@ def save_binding(resource_id: str, bridge: int, handler: int, target: int, chain
     db.commit()
 
 
-def available_contracts(chain: int):
+def _contract_type(name: str):
+    if name == CBContracts.ERC20_HANDLER or name == CBContracts.ERC721_HANDLER:
+        return "handler"
+    if name == CBContracts.ERC20 or name == CBContracts.ERC721:
+        return "target"
+    else:
+        return "bridge"
+
+
+def available_contracts(chain: int, type: CBContracts):
     db = sqlite3.connect(BC_RESOURCES_PATH)
     cursor = db.cursor()
     contracts = cursor.execute(
@@ -50,9 +60,20 @@ def available_contracts(chain: int):
     last_contracts = {}
     # Parses all contracts keeping only the last of each type
     for contract in contracts:
+        # If this type of contract is not in the dict it means that it is the most
+        # recent of its type
         if not last_contracts.get(contract[1]):
-            last_contracts[contract[1]] = Contract(
-                contract[0], contract[1], contract[2], contract[3], contract[4])
+            if type:
+                # If this is the bridge contract or the type for wich the user
+                # is filtering we add to the list of contracts
+                if type in contract[1] or contract[1] == CBContracts.BRIDGE:
+                    last_contracts[_contract_type(contract[1])] = Contract(
+                        contract[0], contract[1], contract[2], contract[3], contract[4])
+            else:
+                # User wants to retreive all the most recent contracts, so we add
+                # all the contracts fo this chain
+                last_contracts[_contract_type(contract[1])] = Contract(
+                    contract[0], contract[1], contract[2], contract[3], contract[4])
     return last_contracts
 
 

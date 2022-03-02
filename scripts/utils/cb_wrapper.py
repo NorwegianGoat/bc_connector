@@ -112,48 +112,31 @@ class CBWrapper():
         params += ['--minter', minter]
         return self._run_command(params)
 
-    def approve20(self, gateway: str, pkey: str, gas: int, amount: int, erc20_addr: str,
-                  recipient: str):
+    def approve(self, gateway: str, pkey: str, gas: int, type: CBContracts, amount: int, target: str,
+                recipient: str):
         params = self._basic_config(gateway, pkey, gas)
-        params.insert(1, "erc20")
+        if type == CBContracts.ERC20:
+            params.insert(1, "erc20")
+            params += ['--amount', amount, '--erc20Address', target]
+        elif type == CBContracts.ERC721:
+            params.insert(1, "erc721")
+            params += ['--id', hex(amount), '--erc721Address', target]
         params.insert(2, 'approve')
-        params += ['--amount', str(amount), '--erc20Address', erc20_addr,
-                   '--recipient', recipient]
+        params += ['--recipient', recipient]
         return self._run_command(params)
 
-    def deposit20(self, gateway: str, pkey: str, gas: int, amount: int, dest: int,
-                  bridge: str, recipient: str, resource_id: str):
+    def deposit(self, gateway: str, pkey: str, gas: int, type: CBContracts, amount: int, dest: int,
+                bridge: str, recipient: str, resource_id: str):
         params = self._basic_config(gateway, pkey, gas)
-        params.insert(1, "erc20")
+        if type == CBContracts.ERC20:
+            params.insert(1, "erc20")
+            params += ['--amount', amount]
+        elif type == CBContracts.ERC721:
+            params.insert(1, "erc721")
+            params += ['--id', hex(amount)]
         params.insert(2, 'deposit')
-        params += ['--amount', str(amount), '--dest', str(dest),
-                   '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
-        return self._run_command(params)
-
-    def approve721(self, gateway: str, pkey: str, gas: int, token_id: int, erc721_addr: str,
-                   recipient: str):
-        '''gateway: The node managing the request
-        pkey: the private key of the user that is giving the recipient the autorization to manage his tokens
-        gas: the gas for the computation
-        token_id: the NFT id we are autorizing the bridge to manage to
-        erc721_addr: the addrress of the smart contract related to the nft
-        recipient: the address we are autorizing to manage our asset (the erc721 handler contract)
-        '''
-        params = self._basic_config(gateway, pkey, gas)
-        params.insert(1, "erc721")
-        params.insert(2, 'approve')
-        params += ['--id', str(hex(token_id)), '--erc721Address', erc721_addr,
-                   '--recipient', recipient]
-        return self._run_command(params)
-
-    def deposit721(self, gateway: str, pkey: str, gas: int, token_id: int, dest: int,
-                   bridge: str, recipient: str, resource_id: str):
-        '''dest: chain id of token destination.'''
-        params = self._basic_config(gateway, pkey, gas)
-        params.insert(1, "erc721")
-        params.insert(2, 'deposit')
-        params += ['--id', str(hex(token_id)), '--dest', str(dest),
-                   '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
+        params += ['--dest', str(dest), '--bridge', bridge,
+                   '--recipient', recipient, '--resourceId', resource_id]
         return self._run_command(params)
 
     def update_config_json(self, chain_id):
