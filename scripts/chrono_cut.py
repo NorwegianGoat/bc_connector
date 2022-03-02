@@ -42,40 +42,57 @@ def _deploy_bridge(endpoint: Node, contracts: List[CBContracts]):
     save_contracts(out.stdout, endpoint.chain_id)
 
 
-def _register_resource(endpoint: Node, resource_id: str):
-    # Register resource on chain and save on local db
+def _register_resource(endpoint: Node, resource_id: str, type: CBContracts):
+    # Registers resource on chain and save on local db
     dest_chain_config = True
     if not resource_id:
         resource_id = '0x'+os.getrandom(32).hex()
         dest_chain_config = False
     contracts = available_contracts(endpoint.chain_id)
     logging.info(contracts)
+    resources = {"bridge": contracts['bridge']}
+    if type == CBContracts.ERC20:
+        resources['handler'] = contracts['erc20Handler']
+        resources['target'] = contracts['erc20']
+    elif type == CBContracts.ERC721:
+        resources['handler'] = contracts['erc721Handler']
+        resources['target'] = contracts['erc721']
     cb.register_resource(endpoint.get_endpoint(), acc.key.hex(
-    ), 10000000, contracts['bridge'].address, contracts['erc20Handler'].address, resource_id, contracts['erc20'].address)
-    save_binding(resource_id, contracts['bridge'].id,
-                 contracts['erc20Handler'].id, contracts['erc20'].id, endpoint.chain_id)
+    ), 10000000, resources['bridge'].address, resources['handler'].address, resource_id, resources['target'].address)
+    save_binding(resource_id, resources['bridge'].id,
+                 resources['handler'].id, resources['target'].id, endpoint.chain_id)
     if dest_chain_config:
-        # If this is a first deploy we are on a destination chain so we need to 
+        # If this is a first deploy we are on a destination chain so we need to
         # set up the new token as burnable and add the minter
         cb.burnable(endpoint.get_endpoint(), acc.key.hex(), 10000000,
-                    contracts['bridge'].address, contracts['erc20Handler'].address, contracts['erc20'].address)
+                    resources['bridge'].address, resources['handler'].address, resources['target'].address)
         cb.add_minter(endpoint.get_endpoint(), acc.key.hex(),
-                      10000000, contracts['erc20Handler'].address, contracts['erc20'].address)
+                      10000000, type, resources['handler'].address, resources['target'].address)
     return resource_id
 
 
-def deploy_bridge():
-    #_deploy_bridge(n0, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER])
-    #_deploy_bridge(
-    #    n1, [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER, CBContracts.ERC20])
+def deploy_bridge(type: CBContracts):
+    contracts_source = []
+    contracts_dest = []
+    if type == CBContracts.ERC20:
+        contracts_source += [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER]
+        contracts_dest += [CBContracts.BRIDGE,
+                           CBContracts.ERC20_HANDLER, CBContracts.ERC20]
+    elif type == CBContracts.ERC721:
+        contracts_source += [CBContracts.BRIDGE, CBContracts.ERC721_HANDLER]
+        contracts_dest += [CBContracts.BRIDGE,
+                           CBContracts.ERC721_HANDLER, CBContracts.ERC721]
+    _deploy_bridge(n0, contracts_source)
+    _deploy_bridge(n1, contracts_dest)
     # The vulnerability in the whole process is the fact that the user is the ralayer
-    cb.update_config_json()
-    #res_id_origin = _register_resource(n0, None)
-    #_register_resource(n1, res_id_origin)
+    res_id_origin = _register_resource(n0, None, type)
+    _register_resource(n1, res_id_origin, type)
+    cb.update_config_json(n0.chain_id)
+    cb.update_config_json(n1.chain_id)
 
 
 def simple_erc20_transfer(amount: int):
-    logging.info("Transferring " + str(amount) + " erc20 tokens")
+    logging.info("Transferring " + str(amount) + " tokens")
     # Redeem tokens for this test
     redeem_tokens(n0.provider, acc, n0.provider.toWei(10, 'ether'))
     # Approves the erc20 handler to manage the amount of tokens
@@ -102,8 +119,8 @@ def erc20_transfer_conn_lock():
 
 def tests():
     # simple_erc721_transfer()
-    deploy_bridge()
-    #simple_erc20_transfer(10)
+    deploy_bridge(CBContracts.ERC721)
+    # simple_erc20_transfer(10)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 
