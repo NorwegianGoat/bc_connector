@@ -1,8 +1,6 @@
-# Chain 0
 import sqlite3
 import time
-from model.contract import Contract
-from scripts.utils.cb_wrapper import CBContracts
+from model.contract import Contract, ContractTypes
 
 BC_RESOURCES_PATH = 'resources/bc_resources.db'
 
@@ -44,15 +42,15 @@ def save_binding(resource_id: str, bridge: int, handler: int, target: int, chain
 
 
 def _contract_type(name: str):
-    if name == CBContracts.ERC20_HANDLER or name == CBContracts.ERC721_HANDLER:
+    if name == ContractTypes.ERC20_HANDLER or name == ContractTypes.ERC721_HANDLER:
         return "handler"
-    if name == CBContracts.ERC20 or name == CBContracts.ERC721:
+    if name == ContractTypes.ERC20 or name == ContractTypes.ERC721:
         return "target"
     else:
         return "bridge"
 
 
-def available_contracts(chain: int, type: CBContracts):
+def available_contracts(chain: int, type: ContractTypes):
     db = sqlite3.connect(BC_RESOURCES_PATH)
     cursor = db.cursor()
     contracts = cursor.execute(
@@ -66,7 +64,7 @@ def available_contracts(chain: int, type: CBContracts):
             if type:
                 # If this is the bridge contract or the type for wich the user
                 # is filtering we add to the list of contracts
-                if type in contract[1] or contract[1] == CBContracts.BRIDGE:
+                if type in contract[1] or contract[1] == ContractTypes.BRIDGE:
                     last_contracts[_contract_type(contract[1])] = Contract(
                         contract[0], contract[1], contract[2], contract[3], contract[4])
             else:

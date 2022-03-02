@@ -132,3 +132,4 @@ chainbridge_config.sh
 .secret
 node_modules
 *.save
+*.db

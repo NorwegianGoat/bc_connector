@@ -3,8 +3,9 @@ from typing import List
 from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
 from model.node import Node
+from model.contract import ContractTypes
 from urllib.parse import urlparse
-from utils.cb_wrapper import CBContracts, CBWrapper
+from utils.cb_wrapper import CBWrapper
 from utils.resource_manager import *
 from utils.cc_redeem import redeem_tokens
 import random
@@ -27,20 +28,20 @@ def unblock_connection(ip: str):
     ufw.alter_config(ALLOW, ip)
 
 
-def _deploy_bridge(endpoint: Node, contracts: List[CBContracts]):
+def _deploy_bridge(endpoint: Node, contracts: List[ContractTypes]):
     # Deploy new bridge on chain and save it on db
-    out = cb.deploy(endpoint.get_endpoint(), acc.key.hex(),
+    out = cb.deploy(endpoint.node_endpoint, acc.key.hex(),
                     10000000, contracts, [acc.address], 1, endpoint.chain_id)
     save_contracts(out.stdout, endpoint.chain_id)
 
 
-def _register_resource(endpoint: Node, resource_id: str, type: CBContracts):
+def _register_resource(endpoint: Node, resource_id: str, type: ContractTypes):
     # Registers resource on chain and save on local db
     dest_chain_config = True
     if not resource_id:
         resource_id = '0x'+os.getrandom(32).hex()
         dest_chain_config = False
-    contracts = available_contracts(endpoint.chain_id)
+    contracts = available_contracts(endpoint.chain_id, type)
     logging.info(contracts)
     cb.register_resource(endpoint.node_endpoint, acc.key.hex(
     ), 10000000, contracts['bridge'].address, contracts['handler'].address, resource_id, contracts['target'].address)
@@ -56,18 +57,18 @@ def _register_resource(endpoint: Node, resource_id: str, type: CBContracts):
     return resource_id
 
 
-def deploy_bridge(type: CBContracts):
+def deploy_bridge(type: ContractTypes):
     # TODO: add option to update existing bridges
     contracts_source = None
     contracts_dest = None
-    if type == CBContracts.ERC20:
-        contracts_source = [CBContracts.BRIDGE, CBContracts.ERC20_HANDLER]
-        contracts_dest = [CBContracts.BRIDGE,
-                           CBContracts.ERC20_HANDLER, CBContracts.ERC20]
-    elif type == CBContracts.ERC721:
-        contracts_source = [CBContracts.BRIDGE, CBContracts.ERC721_HANDLER]
-        contracts_dest = [CBContracts.BRIDGE,
-                           CBContracts.ERC721_HANDLER, CBContracts.ERC721]
+    if type == ContractTypes.ERC20:
+        contracts_source = [ContractTypes.BRIDGE, ContractTypes.ERC20_HANDLER]
+        contracts_dest = [ContractTypes.BRIDGE,
+                          ContractTypes.ERC20_HANDLER, ContractTypes.ERC20]
+    elif type == ContractTypes.ERC721:
+        contracts_source = [ContractTypes.BRIDGE, ContractTypes.ERC721_HANDLER]
+        contracts_dest = [ContractTypes.BRIDGE,
+                          ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
     _deploy_bridge(n0, contracts_source)
     _deploy_bridge(n1, contracts_dest)
     # The vulnerability in the whole process is the fact that the user is the ralayer
@@ -77,19 +78,28 @@ def deploy_bridge(type: CBContracts):
     cb.update_config_json(n1.chain_id)
 
 
-def simple_token_transfer(amount: int, type: CBContracts):
+def simple_token_transfer(amount: int, type: ContractTypes):
     logging.info("Transferring " + str(amount) + " tokens")
     # Redeem tokens for this test
-    if type == CBContracts.ERC20:
-        amount = n0.provider.toWei(10, 'ether')
+    if type == ContractTypes.ERC20:
+        amount = n0.provider.toWei(amount, 'ether')
     redeem_tokens(n0.provider, acc, amount, type)
-    # Approves the erc20 handler to manage the amount of tokens
+    # Gets the contract addresses for this type of transfer and the associated resource id
     contracts = available_contracts(n0.chain_id, type)
-    cb.approve(n0.get_endpoint(), acc.key.hex(), 100000, n0.provider.toWei(
-        10, 'ether'), contracts['target'].address, contracts['handler'].address)
     res_id = available_resources(n0.chain_id, contracts['target'].id)
-    cb.deposit(n0.get_endpoint(), acc.key.hex(), 100000, n0.provider.toWei(
-        10, 'ether'), 45, contracts['bridge'].address, acc.address, res_id)
+    if type == ContractTypes.ERC721:
+        # For each nft fires an approve and transfer
+        for i in range(amount):
+            cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, i,
+                       contracts['target'].address, contracts['handler'].address)
+            cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, i,
+                       45, contracts['bridge'].address, acc.address, res_id)
+    elif type == ContractTypes.ERC20:
+        # For erc20 we need just one request
+        cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, amount,
+                   contracts['target'].address, contracts['handler'].address)
+        cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, amount,
+                   45, contracts['bridge'].address, acc.address, res_id)
 
 
 def transfer_conn_lock():
@@ -106,9 +116,8 @@ def transfer_conn_lock():
 
 
 def tests():
-    # simple_erc721_transfer()
-    deploy_bridge(CBContracts.ERC721)
-    simple_token_transfer(10)
+    # deploy_bridge(ContractTypes.ERC20)
+    simple_token_transfer(1, ContractTypes.ERC721)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 

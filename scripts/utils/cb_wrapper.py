@@ -2,21 +2,12 @@ import subprocess
 from typing import List
 from utils.sys_mod import check_program
 from utils.resource_manager import available_contracts
-from enum import Enum
+from model.contract import ContractTypes
 import logging
 import os
 import json
 
 CONFIG_JSON_FILE = 'resources/config.json'
-
-
-class CBContracts(str, Enum):
-    BRIDGE = "bridge"
-    ERC20_HANDLER = "erc20Handler"
-    ERC20 = "erc20"
-    ERC721_HANDLER = "erc721Handler"
-    ERC721 = "erc721"
-    GENERIC_HANDLER = "genericHandler"
 
 
 class CBWrapper():
@@ -70,12 +61,12 @@ class CBWrapper():
         params = ['kill', '-15', pid]
         subprocess.run(params)
 
-    def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[CBContracts],
+    def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[ContractTypes],
                relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
         params = self._basic_config(gateway, pkey, gas)
         params.append('deploy')
         params += ["--"+contract for contract in contracts_to_deploy]
-        if CBContracts.BRIDGE in contracts_to_deploy:
+        if ContractTypes.BRIDGE in contracts_to_deploy:
             params.append('--relayers')
             params += relayer_addresses
             params += ['--relayerThreshold',
@@ -100,38 +91,38 @@ class CBWrapper():
                    handler_addr, '--tokenContract', target_contract]
         return self._run_command(params)
 
-    def add_minter(self, gateway: str, pkey: str, gas: int, type: CBContracts, minter: str, target_contract: str):
+    def add_minter(self, gateway: str, pkey: str, gas: int, type: ContractTypes, minter: str, target_contract: str):
         params = self._basic_config(gateway, pkey, gas)
-        if type == CBContracts.ERC20:
+        if type == ContractTypes.ERC20:
             params.insert(1, 'erc20')
             params += ['--erc20Address', target_contract]
-        elif type == CBContracts.ERC721:
+        elif type == ContractTypes.ERC721:
             params.insert(1, '--erc721')
             params += ['--erc721Address', target_contract]
         params.insert(2, 'add-minter')
         params += ['--minter', minter]
         return self._run_command(params)
 
-    def approve(self, gateway: str, pkey: str, gas: int, type: CBContracts, amount: int, target: str,
+    def approve(self, gateway: str, pkey: str, gas: int, type: ContractTypes, amount: int, target: str,
                 recipient: str):
         params = self._basic_config(gateway, pkey, gas)
-        if type == CBContracts.ERC20:
+        if type == ContractTypes.ERC20:
             params.insert(1, "erc20")
-            params += ['--amount', amount, '--erc20Address', target]
-        elif type == CBContracts.ERC721:
+            params += ['--amount', str(amount), '--erc20Address', target]
+        elif type == ContractTypes.ERC721:
             params.insert(1, "erc721")
             params += ['--id', hex(amount), '--erc721Address', target]
         params.insert(2, 'approve')
         params += ['--recipient', recipient]
         return self._run_command(params)
 
-    def deposit(self, gateway: str, pkey: str, gas: int, type: CBContracts, amount: int, dest: int,
+    def deposit(self, gateway: str, pkey: str, gas: int, type: ContractTypes, amount: int, dest: int,
                 bridge: str, recipient: str, resource_id: str):
         params = self._basic_config(gateway, pkey, gas)
-        if type == CBContracts.ERC20:
+        if type == ContractTypes.ERC20:
             params.insert(1, "erc20")
-            params += ['--amount', amount]
-        elif type == CBContracts.ERC721:
+            params += ['--amount', str(amount)]
+        elif type == ContractTypes.ERC721:
             params.insert(1, "erc721")
             params += ['--id', hex(amount)]
         params.insert(2, 'deposit')
@@ -142,18 +133,19 @@ class CBWrapper():
     def update_config_json(self, chain_id):
         with open(CONFIG_JSON_FILE, 'r+') as f:
             jsonfile = json.load(f)
-            contracts = available_contracts(chain_id)
+            contracts = available_contracts(chain_id, None)
             # we search for the right chain config json object in the whole list
             for i in range(len(jsonfile['chains'])):
                 if jsonfile['chains'][i]['id'] == str(chain_id):
                     # For each contract available in the chain we update the address on the json
                     # so it makes no difference if we used a erc20/721/generic handler contract
-                    for key in contracts.keys():
-                        if key == 'erc20' or key == 'erc721':
+                    for contract in contracts.values():
+                        if contract.type == 'erc20' or contract.type == 'erc721':
                             # The config file does not contain the erc20/721 endpoint
+                            # so we skip them
                             pass
                         else:
-                            jsonfile['chains'][i]['opts'][key] = contracts[key].address
+                            jsonfile['chains'][i]['opts'][contract.type] = contract.address
                     f.seek(0)
                     f.truncate()
                     json.dump(jsonfile, f, indent=4)

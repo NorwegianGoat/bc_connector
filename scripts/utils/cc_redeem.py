@@ -4,21 +4,21 @@ from web3.middleware import geth_poa_middleware
 import json
 import argparse
 import logging
-from cb_wrapper import CBContracts
+from model.contract import ContractTypes
 from utils.resource_manager import available_contracts
 
 CC_ABI_PATH = 'crosscoin/build/contracts/CrossCoin.json'
 CN_ABI_PATH = 'crosscoin/build/contracts/CrossNft.json'
 PKEY_PATH = 'crosscoin/.secret'
-CC_CONTRACT = available_contracts(100)['erc20'].address
-CN_CONTRACT = available_contracts(100)['erc721'].address
+CC_CONTRACT = available_contracts(100, ContractTypes.ERC20)['target'].address
+CN_CONTRACT = available_contracts(100, ContractTypes.ERC721)['target'].address
 
 
-def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: CBContracts):
-    if type == CBContracts.ERC20:
+def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: ContractTypes):
+    if type == ContractTypes.ERC20:
         addr = CC_CONTRACT
         abi_path = CC_ABI_PATH
-    elif type == CBContracts.ERC721:
+    elif type == ContractTypes.ERC721:
         addr = CN_CONTRACT
         abi_path = CN_ABI_PATH
     # Load contract abi
