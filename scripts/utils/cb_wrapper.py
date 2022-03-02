@@ -1,11 +1,14 @@
 import subprocess
 from typing import List
 from utils.sys_mod import check_program
+from utils.resource_manager import available_contracts
 from enum import Enum
 import logging
+import os
 import json
 
 CONFIG_JSON_FILE = 'resources/config.json'
+
 
 class CBContracts(str, Enum):
     BRIDGE = "bridge"
@@ -22,19 +25,49 @@ class CBWrapper():
     https://github.com/ChainSafe/chainbridge-deploy/blob/main/cb-sol-cli/README.md#usage'''
 
     def __init__(self):
-        self.is_installed = check_program("cb-sol-cli")
-        if not self.is_installed:
+        self.cb_sol_cli = check_program("cb-sol-cli")
+        self.chainbridge = check_program("chainbridge")
+        if not self.cb_sol_cli:
             exit("No cb-sol-cli. Please install cb-sol-cli.")
+        if not self.chainbridge:
+            print("Chainbridge relayer not installed")
+        else:
+            if self.is_chainbridge_running():
+                logging.info("Bridge already running, it will not be started")
+            else:
+                self.start_relay()
 
     def _basic_config(self, gateway: str, pkey: str, gas: int):
         return ['cb-sol-cli', '--url', gateway, '--privateKey',
                 pkey, '--gasPrice', str(gas)]
 
-    def _run_command(self, params):
+    def _run_command(self, params) -> subprocess.CompletedProcess:
         logging.info(params)
         out = subprocess.run(params, capture_output=True)
         print(out.stdout.decode("UTF-8"))
         return out
+
+    def is_chainbridge_running(self):
+        if self.chainbridge:
+            params = ['pgrep', 'chainbridge']
+            out = subprocess.run(params, capture_output=True)
+            return not out.returncode
+        else:
+            return False
+
+    def start_relay(self):
+        params = ['nohup', 'chainbridge', '--config',
+                  os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '--latest', '&']
+        logging.info("Starting chainbridge relay")
+        subprocess.Popen(params, cwd=os.path.realpath('..'))
+
+    def stop_relay(self):
+        logging.info("Stopping chainbridge relay")
+        params = ['pgrep', 'chainbridge']
+        pid = subprocess.run(
+            params, capture_output=True).stdout.decode('UTF-8').strip()
+        params = ['kill', '-15', pid]
+        subprocess.run(params)
 
     def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[CBContracts],
                relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
@@ -46,7 +79,7 @@ class CBWrapper():
             params += relayer_addresses
             params += ['--relayerThreshold',
                        str(relayer_threshold), "--chainId", str(chain_id)]
-        self._run_command(params)
+        return self._run_command(params)
 
     def register_resource(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
                           handler_addr: str, resource_id: str, target_contract: str):
@@ -55,7 +88,7 @@ class CBWrapper():
         params.insert(2, 'register-resource')
         params += ['--bridge', bridge_addr, '--handler', handler_addr, '--resourceId', resource_id,
                    '--targetContract', target_contract]
-        self._run_command(params)
+        return self._run_command(params)
 
     def burnable(self, gateway: str, pkey: str, gas: int, bridge_addr: str,
                  handler_addr: str, target_contract: str):
@@ -64,14 +97,19 @@ class CBWrapper():
         params.insert(2, 'set-burn')
         params += ['--bridge', bridge_addr, '--handler',
                    handler_addr, '--tokenContract', target_contract]
-        self._run_command(params)
+        return self._run_command(params)
 
-    def add_minter(self, gateway: str, pkey: str, gas: int, minter: str, target_contract: str):
+    def add_minter(self, gateway: str, pkey: str, gas: int, type: CBContracts, minter: str, target_contract: str):
         params = self._basic_config(gateway, pkey, gas)
-        params.insert(1, 'erc20')
+        if type == CBContracts.ERC20:
+            params.insert(1, 'erc20')
+            params += ['--erc20Address', target_contract]
+        elif type == CBContracts.ERC721:
+            params.insert(1, '--erc721')
+            params += ['--erc721Address', target_contract]
         params.insert(2, 'add-minter')
-        params += ['--minter', minter, '--erc20Address', target_contract]
-        self._run_command(params)
+        params += ['--minter', minter]
+        return self._run_command(params)
 
     def approve20(self, gateway: str, pkey: str, gas: int, amount: int, erc20_addr: str,
                   recipient: str):
@@ -80,7 +118,7 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--amount', str(amount), '--erc20Address', erc20_addr,
                    '--recipient', recipient]
-        self._run_command(params)
+        return self._run_command(params)
 
     def deposit20(self, gateway: str, pkey: str, gas: int, amount: int, dest: int,
                   bridge: str, recipient: str, resource_id: str):
@@ -89,7 +127,7 @@ class CBWrapper():
         params.insert(2, 'deposit')
         params += ['--amount', str(amount), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
-        self._run_command(params)
+        return self._run_command(params)
 
     def approve721(self, gateway: str, pkey: str, gas: int, token_id: int, erc721_addr: str,
                    recipient: str):
@@ -105,7 +143,7 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--id', str(hex(token_id)), '--erc721Address', erc721_addr,
                    '--recipient', recipient]
-        self._run_command(params)
+        return self._run_command(params)
 
     def deposit721(self, gateway: str, pkey: str, gas: int, token_id: int, dest: int,
                    bridge: str, recipient: str, resource_id: str):
@@ -115,9 +153,26 @@ class CBWrapper():
         params.insert(2, 'deposit')
         params += ['--id', str(hex(token_id)), '--dest', str(dest),
                    '--bridge', bridge, '--recipient', recipient, '--resourceId', resource_id]
-        self._run_command(params)
+        return self._run_command(params)
 
-    def update_config_json(self):
-        with open(CONFIG_JSON_FILE) as f:
+    def update_config_json(self, chain_id):
+        with open(CONFIG_JSON_FILE, 'r+') as f:
             jsonfile = json.load(f)
-            print(jsonfile)
+            contracts = available_contracts(chain_id)
+            # we search for the right chain config json object in the whole list
+            for i in range(len(jsonfile['chains'])):
+                if jsonfile['chains'][i]['id'] == str(chain_id):
+                    # For each contract available in the chain we update the address on the json
+                    # so it makes no difference if we used a erc20/721/generic handler contract
+                    for key in contracts.keys():
+                        if key == 'erc20' or key == 'erc721':
+                            # The config file does not contain the erc20/721 endpoint
+                            pass
+                        else:
+                            jsonfile['chains'][i]['opts'][key] = contracts[key].address
+                    f.seek(0)
+                    f.truncate()
+                    json.dump(jsonfile, f, indent=4)
+                    break
+        self.stop_relay()
+        self.start_relay()
