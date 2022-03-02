@@ -29,6 +29,7 @@ class Node():
 
 
 if __name__ == "__main__":
+    #TODO: remove, it's just for debug
     n = Node("http://192.168.1.110:8545", 100)
     '''block = n.provider.eth.get_block(4088, True)
     for tx in block['transactions']:

@@ -46,7 +46,7 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: CBCon
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(
-        "Utility for interacting with erc721 contract.")
+        "Utility for interacting with token contracts in crosscoin dir, the mint function is called and tokens are minted on chain.")
     parser.add_argument('--quantity', type=int, required=False, default=100)
     parser.add_argument('--endpoint', type=str, required=True)
     args = parser.parse_args()

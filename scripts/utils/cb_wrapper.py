@@ -22,7 +22,8 @@ class CBContracts(str, Enum):
 class CBWrapper():
     '''This is a simple wrapper to call cb-sol-cli functions from
     python. For config and params info check the official documentation at
-    https://github.com/ChainSafe/chainbridge-deploy/blob/main/cb-sol-cli/README.md#usage'''
+    https://github.com/ChainSafe/chainbridge-deploy/blob/main/cb-sol-cli/README.md#usage
+    This wrapper is also used to manage chainbridge relay.'''
 
     def __init__(self):
         self.cb_sol_cli = check_program("cb-sol-cli")
