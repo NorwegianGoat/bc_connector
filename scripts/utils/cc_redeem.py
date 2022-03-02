@@ -4,24 +4,28 @@ from web3.middleware import geth_poa_middleware
 import json
 import argparse
 import logging
+from cb_wrapper import CBContracts
 from utils.resource_manager import available_contracts
 
-CC_ABI_PATH = 'crosscoin/contracts/CrossCoin.json'
+CC_ABI_PATH = 'crosscoin/build/contracts/CrossCoin.json'
+CN_ABI_PATH = 'crosscoin/build/contracts/CrossNft.json'
 PKEY_PATH = 'crosscoin/.secret'
-ORIGIN_CONTRACT = available_contracts(100)['erc20'].address
+CC_CONTRACT = available_contracts(100)['erc20'].address
+CN_CONTRACT = available_contracts(100)['erc721'].address
 
 
-def _read_abi():
-    with open(CC_ABI_PATH) as f:
-        contract_abi = json.loads(f.read())
-    return contract_abi['abi']
-
-
-def redeem_tokens(w3: BaseProvider, account: Account, quantity: int):
+def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: CBContracts):
+    if type == CBContracts.ERC20:
+        addr = CC_CONTRACT
+        abi_path = CC_ABI_PATH
+    elif type == CBContracts.ERC721:
+        addr = CN_CONTRACT
+        abi_path = CN_ABI_PATH
     # Load contract abi
-    abi = _read_abi()
-    erc20_addr = ORIGIN_CONTRACT
-    contract = w3.eth.contract(address=erc20_addr, abi=abi)
+    with open(abi_path) as f:
+        contract_abi = json.loads(f.read())
+    abi = contract_abi['abi']
+    contract = w3.eth.contract(address=addr, abi=abi)
     #w3.middleware_onion.inject(geth_poa_middleware, layer=0)
     # Fire redeem transaction
     t_dict = {"chainId": w3.eth.chain_id,
