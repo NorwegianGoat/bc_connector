@@ -1,6 +1,7 @@
 import sqlite3
 import time
 from model.contract import Contract, ContractTypes
+import logging
 
 BC_RESOURCES_PATH = 'resources/bc_resources.db'
 
@@ -41,7 +42,7 @@ def save_binding(resource_id: str, bridge: int, handler: int, target: int, chain
     db.commit()
 
 
-def _contract_type(name: str):
+def _contract_alias(name: str):
     if name == ContractTypes.ERC20_HANDLER or name == ContractTypes.ERC721_HANDLER:
         return "handler"
     if name == ContractTypes.ERC20 or name == ContractTypes.ERC721:
@@ -60,17 +61,17 @@ def available_contracts(chain: int, type: ContractTypes):
     for contract in contracts:
         # If this type of contract is not in the dict it means that it is the most
         # recent of its type
-        if not last_contracts.get(contract[1]):
+        if not last_contracts.get(_contract_alias(contract[1])):
             if type:
                 # If this is the bridge contract or the type for wich the user
                 # is filtering we add to the list of contracts
                 if type in contract[1] or contract[1] == ContractTypes.BRIDGE:
-                    last_contracts[_contract_type(contract[1])] = Contract(
+                    last_contracts[_contract_alias(contract[1])] = Contract(
                         contract[0], contract[1], contract[2], contract[3], contract[4])
             else:
                 # User wants to retreive all the most recent contracts, so we add
                 # all the contracts on this chain
-                last_contracts[_contract_type(contract[1])] = Contract(
+                last_contracts[_contract_alias(contract[1])] = Contract(
                     contract[0], contract[1], contract[2], contract[3], contract[4])
     return last_contracts
 
@@ -78,4 +79,6 @@ def available_contracts(chain: int, type: ContractTypes):
 def available_resources(chain_id: int, target: int):
     db = sqlite3.connect(BC_RESOURCES_PATH)
     cursor = db.cursor()
-    return cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i ORDER BY timestamp DESC LIMIT 1''' % (chain_id, target)).fetchone()[0]
+    res_id = cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i ORDER BY timestamp DESC LIMIT 1''' % (chain_id, target)).fetchone()[0]
+    logging.info("Res id for target %i is %s" % (target, res_id))
+    return res_id

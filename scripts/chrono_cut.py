@@ -89,7 +89,7 @@ def simple_token_transfer(amount: int, type: ContractTypes):
     res_id = available_resources(n0.chain_id, contracts['target'].id)
     if type == ContractTypes.ERC721:
         # For each nft fires an approve and transfer
-        for i in range(amount):
+        for i in range(amount,7):
             cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, i,
                        contracts['target'].address, contracts['handler'].address)
             cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, i,
@@ -117,7 +117,7 @@ def transfer_conn_lock():
 
 def tests():
     deploy_bridge(ContractTypes.ERC20)
-    simple_token_transfer(10, ContractTypes.ERC20)
+    simple_token_transfer(1, ContractTypes.ERC20)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 

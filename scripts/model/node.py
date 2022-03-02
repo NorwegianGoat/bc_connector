@@ -26,5 +26,5 @@ if __name__ == "__main__":
     # TODO: remove, it's just for debug
     n = Node("http://192.168.1.110:8545")
     tx = n.provider.eth.get_transaction_receipt(
-        '0x4bc001f833c04635133461d97373418b3da0db0a0ae081a05c36aa61ae2d22f5')
+        '0x423074e7f425c72960df540aacc29b95f3115ab71a36ff570d7cd08be646d5c8')
     print(tx)
