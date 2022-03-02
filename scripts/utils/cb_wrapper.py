@@ -130,10 +130,10 @@ class CBWrapper():
                    '--recipient', recipient, '--resourceId', resource_id]
         return self._run_command(params)
 
-    def update_config_json(self, chain_id):
+    def update_config_json(self, chain_id, type):
         with open(CONFIG_JSON_FILE, 'r+') as f:
             jsonfile = json.load(f)
-            contracts = available_contracts(chain_id, None)
+            contracts = available_contracts(chain_id, type)
             # we search for the right chain config json object in the whole list
             for i in range(len(jsonfile['chains'])):
                 if jsonfile['chains'][i]['id'] == str(chain_id):

@@ -69,7 +69,7 @@ def available_contracts(chain: int, type: ContractTypes):
                         contract[0], contract[1], contract[2], contract[3], contract[4])
             else:
                 # User wants to retreive all the most recent contracts, so we add
-                # all the contracts fo this chain
+                # all the contracts on this chain
                 last_contracts[_contract_type(contract[1])] = Contract(
                     contract[0], contract[1], contract[2], contract[3], contract[4])
     return last_contracts

@@ -24,15 +24,7 @@ class Node():
 
 if __name__ == "__main__":
     # TODO: remove, it's just for debug
-    n = Node("http://192.168.1.110:8545", 100)
-    '''block = n.provider.eth.get_block(4088, True)
-    for tx in block['transactions']:
-        print(str(tx['nonce']) + " " + tx['hash'].hex() + " " + tx['from'] + " " + tx['to'])'''
+    n = Node("http://192.168.1.110:8545")
     tx = n.provider.eth.get_transaction_receipt(
-        '0x4461ee0cef0e1cd52ed9adff58dcd7ffd56587e0ee64154f7c526747b0b93129')
-    print("APPROVE")
-    print(tx)
-    print("TRANSFER")
-    tx = n.provider.eth.get_transaction_receipt(
-        '0x2b867bcd25d2a893661648df590c14a684a9c4b280c2568dfa0629610464d7f3')
+        '0x4bc001f833c04635133461d97373418b3da0db0a0ae081a05c36aa61ae2d22f5')
     print(tx)

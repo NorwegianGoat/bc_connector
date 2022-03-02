@@ -74,8 +74,8 @@ def deploy_bridge(type: ContractTypes):
     # The vulnerability in the whole process is the fact that the user is the ralayer
     res_id_origin = _register_resource(n0, None, type)
     _register_resource(n1, res_id_origin, type)
-    cb.update_config_json(n0.chain_id)
-    cb.update_config_json(n1.chain_id)
+    cb.update_config_json(n0.chain_id, type)
+    cb.update_config_json(n1.chain_id, type)
 
 
 def simple_token_transfer(amount: int, type: ContractTypes):
@@ -116,8 +116,8 @@ def transfer_conn_lock():
 
 
 def tests():
-    # deploy_bridge(ContractTypes.ERC20)
-    simple_token_transfer(1, ContractTypes.ERC721)
+    deploy_bridge(ContractTypes.ERC20)
+    simple_token_transfer(10, ContractTypes.ERC20)
     # erc20_transfer_conn_lock()
     # ufw.ufw_disable()
 
