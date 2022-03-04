@@ -7,9 +7,9 @@
             "endpoint": "http://192.168.1.110:8545",
             "from": "0x222b8e2152E189f5282249877e039EF2c1c0C826",
             "opts": {
-                "bridge": "0x6EFa9997dB36f008569e00efD342fe9D2c2F4789",
-                "erc20Handler": "0xE93D2CD3D3A7e5457306B7902d098B861aCfA897",
-                "erc721Handler": "0xe2FD61310220Ce15540d8000A92C7Cbb15EE0d0b",
+                "bridge": "0xCe990bfEBaA0a107394F37E1FeADE57f5e0e9A31",
+                "erc20Handler": "0x42a916d70ca1b1EdfD91610EcAB26126c7932dE0",
+                "erc721Handler": "0x3258B78db18fb809945C58eC645A45ec38808A34",
                 "genericHandler": "",
                 "minGasPrice": "1",
                 "http": "true"
@@ -22,9 +22,9 @@
             "endpoint": "http://192.168.1.120:8545",
             "from": "0x222b8e2152E189f5282249877e039EF2c1c0C826",
             "opts": {
-                "bridge": "0x217727839F04397c7435bCCA96dfFac11b95139C",
-                "erc20Handler": "0x217B8B9Dfd8a57ea923092A9E4Ed5682718339ea",
-                "erc721Handler": "0x3616C7fD4F72E383705ba4c86CE420892d2D2c89",
+                "bridge": "0xE67d599Ea3238f7ECE4408e8ff2fa6772D1612a5",
+                "erc20Handler": "0xCe990bfEBaA0a107394F37E1FeADE57f5e0e9A31",
+                "erc721Handler": "0xAd28ab39509672F4D621206710654bd875D5fEa2",
                 "genericHandler": "",
                 "minGasPrice": "1",
                 "http": "true"

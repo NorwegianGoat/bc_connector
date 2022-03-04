@@ -89,7 +89,7 @@ def simple_token_transfer(amount: int, type: ContractTypes):
     res_id = available_resources(n0.chain_id, contracts['target'].id)
     if type == ContractTypes.ERC721:
         # For each nft fires an approve and transfer
-        for i in range(amount,7):
+        for i in range(amount):
             cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, i,
                        contracts['target'].address, contracts['handler'].address)
             cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, i,
