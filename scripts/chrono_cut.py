@@ -16,7 +16,7 @@ N0_C0_URL = "http://192.168.1.110:8545"
 N0_C1_URL = "http://192.168.1.120:8545"
 N0_C2_URL = "http://192.168.1.130:8545"
 WAIT = 30
-PKEY_PATH = 'crosscoin/.secret'
+PKEY_PATH = 'resources/.secret'
 
 
 def block_connection(ip: str):
@@ -108,15 +108,16 @@ def transfer_conn_lock():
     block_connection(ip1)
     # Basic erc20 transfer is fired, but destination is currently unreachable
     simple_token_transfer(1, ContractTypes.ERC20)
-    time.sleep(60)
     logging.info("Waiting")
     # We block source chain and then unblock destination
     ip0 = urlparse(n0.node_endpoint).hostname
+    #TODO: modify logic of block connection
     block_connection(ip0)
     unblock_connection(ip1)
 
 
 def tests():
+    logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
     # simple_token_transfer(1, ContractTypes.ERC20)
     transfer_conn_lock()
@@ -138,5 +139,4 @@ if __name__ == "__main__":
     cb = CBWrapper()
     ufw = UFW()
     ct = ConnTrack()
-    logging.info("Starting tests.")
     tests()
