@@ -14,6 +14,12 @@ CC_CONTRACT = available_contracts(100, ContractTypes.ERC20)['target'].address
 CN_CONTRACT = available_contracts(100, ContractTypes.ERC721)['target'].address
 
 
+def _read_abi(abi_path: str):
+    with open(abi_path) as f:
+        contract_abi = json.loads(f.read())
+    return contract_abi['abi']
+
+
 def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: ContractTypes):
     if type == ContractTypes.ERC20:
         addr = CC_CONTRACT
@@ -21,10 +27,7 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: Contr
     elif type == ContractTypes.ERC721:
         addr = CN_CONTRACT
         abi_path = CN_ABI_PATH
-    # Load contract abi
-    with open(abi_path) as f:
-        contract_abi = json.loads(f.read())
-    abi = contract_abi['abi']
+    abi = _read_abi(abi_path)
     contract = w3.eth.contract(address=addr, abi=abi)
     #w3.middleware_onion.inject(geth_poa_middleware, layer=0)
     # Fire redeem transaction
@@ -41,6 +44,14 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: Contr
         t_dict['chainId']) + " tx_hash " + tx_hash.hex())
     tx_recipit = w3.eth.wait_for_transaction_receipt(tx_hash)
     logging.debug(tx_recipit)
+
+
+def token_of_owner_by_index(w3:BaseProvider, address: str, index: int):
+    abi_path = CN_ABI_PATH
+    addr = CN_CONTRACT
+    abi = _read_abi(abi_path)
+    contract = w3.eth.contract(address=addr, abi=abi)
+    return contract.functions.tokenOfOwnerByIndex(address, index).call()
 
 
 if __name__ == "__main__":
