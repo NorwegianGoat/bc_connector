@@ -7,7 +7,7 @@ from model.contract import ContractTypes
 from urllib.parse import urlparse
 from utils.cb_wrapper import CBWrapper
 from utils.resource_manager import *
-from utils.cc_redeem import redeem_tokens
+from utils.cc_redeem import redeem_tokens, token_of_owner_by_index
 import random
 import os
 
@@ -81,18 +81,17 @@ def deploy_bridge(type: ContractTypes):
 def simple_token_transfer(amount: int, type: ContractTypes):
     logging.info("Transferring " + str(amount) + " tokens")
     # Redeem tokens for this test
-    if type == ContractTypes.ERC20:
-        amount = n0.provider.toWei(amount, 'ether')
-    redeem_tokens(n0.provider, acc, amount, type)
+    redeem_tokens(n0.provider, acc, n0.provider.toWei(amount, 'ether'), type)
     # Gets the contract addresses for this type of transfer and the associated resource id
     contracts = available_contracts(n0.chain_id, type)
     res_id = available_resources(n0.chain_id, contracts['target'].id)
     if type == ContractTypes.ERC721:
         # For each nft fires an approve and transfer
         for i in range(amount):
-            cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, i,
+            id = token_of_owner_by_index(n0.provider, acc.address, 0)
+            cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, id,
                        contracts['target'].address, contracts['handler'].address)
-            cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, i,
+            cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, id,
                        45, contracts['bridge'].address, acc.address, res_id)
     elif type == ContractTypes.ERC20:
         # For erc20 we need just one request
@@ -104,22 +103,24 @@ def simple_token_transfer(amount: int, type: ContractTypes):
 
 def transfer_conn_lock():
     logging.info("Erc20 transfer with connection lock.")
-    ip1 = urlparse(n1.get_endpoint()).hostname
+    ip1 = urlparse(n1.node_endpoint).hostname
     # Connection to dest chain is blocked
     block_connection(ip1)
     # Basic erc20 transfer is fired, but destination is currently unreachable
-    simple_token_transfer()
+    simple_token_transfer(1, ContractTypes.ERC20)
+    time.sleep(60)
+    logging.info("Waiting")
     # We block source chain and then unblock destination
-    ip0 = urlparse(n0.get_endpoint()).hostname
+    ip0 = urlparse(n0.node_endpoint).hostname
     block_connection(ip0)
     unblock_connection(ip1)
 
 
 def tests():
-    deploy_bridge(ContractTypes.ERC20)
-    simple_token_transfer(1, ContractTypes.ERC20)
-    # erc20_transfer_conn_lock()
-    # ufw.ufw_disable()
+    # deploy_bridge(ContractTypes.ERC20)
+    # simple_token_transfer(1, ContractTypes.ERC20)
+    transfer_conn_lock()
+    #ufw.ufw_disable()
 
 
 if __name__ == "__main__":

@@ -20,18 +20,3 @@ class Node():
 
     def __str__(self) -> str:
         return "Endpoint: " + self.node_endpoint + " Chain Id: " + self.chain_id
-
-
-if __name__ == "__main__":
-    # TODO: remove, it's just for debug
-    n = Node("http://192.168.1.110:8545")
-    tx = n.provider.eth.get_transaction_receipt(
-        '0x44e8e62a6804effbcfe8ec3b17916cfb2118cc4afe39332b8d0eb6e51d8fefe9')
-    print(tx)
-    tx = n.provider.eth.get_transaction('0x44e8e62a6804effbcfe8ec3b17916cfb2118cc4afe39332b8d0eb6e51d8fefe9')
-    print(tx)
-    replay = {'to':tx['to'], 'from':tx['from'],'value':tx['value'],'data':tx['input'],'nonce':tx['nonce']}
-    try:
-        n.provider.eth.call(replay, tx.blockNumber-1)
-    except Exception as e:
-        print(e)

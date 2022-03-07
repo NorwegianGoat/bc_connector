@@ -29,12 +29,11 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: Contr
         abi_path = CN_ABI_PATH
     abi = _read_abi(abi_path)
     contract = w3.eth.contract(address=addr, abi=abi)
-    #w3.middleware_onion.inject(geth_poa_middleware, layer=0)
     # Fire redeem transaction
     t_dict = {"chainId": w3.eth.chain_id,
               "nonce": w3.eth.get_transaction_count(account.address, 'pending'),
               "gasPrice": w3.toWei(10, "gwei"),
-              "gas": 100000}
+              "gas": 1000000}
     tx = contract.functions.mint(
         account.address, quantity).buildTransaction(t_dict)
     signed_tx = w3.eth.account.sign_transaction(tx, account.key)
