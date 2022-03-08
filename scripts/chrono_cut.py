@@ -15,17 +15,21 @@ import os
 N0_C0_URL = "http://192.168.1.110:8545"
 N0_C1_URL = "http://192.168.1.120:8545"
 N0_C2_URL = "http://192.168.1.130:8545"
+CHAIN0 = ['192.168.1.110','192.168.1.111', '192.168.1.112', '192.168.1.113']
+CHAIN1 = ['192.168.1.120','192.168.1.121', '192.168.1.122', '192.168.1.123']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
 
 
-def block_connection(ip: str):
-    ufw.alter_config(REJECT, ip)
-    ct.drop(ip)
+def block_connections(endpoints: List[str]):
+    for ip in endpoints:
+        ufw.alter_config(REJECT, ip)
+        ct.drop(ip)
 
 
-def unblock_connection(ip: str):
-    ufw.alter_config(ALLOW, ip)
+def unblock_connections(endpoints: List[str]):
+    for ip in endpoints:
+        ufw.alter_config(ALLOW, ip)
 
 
 def _deploy_bridge(endpoint: Node, contracts: List[ContractTypes]):
@@ -103,25 +107,20 @@ def simple_token_transfer(amount: int, type: ContractTypes):
 
 def transfer_conn_lock():
     logging.info("Erc20 transfer with connection lock.")
-    ip1 = urlparse(n1.node_endpoint).hostname
-    # Connection to dest chain is blocked
-    block_connection(ip1)
-    # Basic erc20 transfer is fired, but destination is currently unreachable
+    # Dest chain is unreachable (e.g. a muntain hut)
+    block_connections(CHAIN1)
+    # Basic erc20 transfer is fired. We block our funds in our city
     simple_token_transfer(1, ContractTypes.ERC20)
-    logging.info("Waiting")
-    # We block source chain and then unblock destination
-    ip0 = urlparse(n0.node_endpoint).hostname
-    #TODO: modify logic of block connection
-    block_connection(ip0)
-    unblock_connection(ip1)
+    # We go away from our city and we reach the hut (i.e. source chain is unreachable, dest chain is reachable)
+    block_connections(CHAIN0[1:])
+    unblock_connections(CHAIN1)
 
 
 def tests():
     logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
-    # simple_token_transfer(1, ContractTypes.ERC20)
     transfer_conn_lock()
-    #ufw.ufw_disable()
+    
 
 
 if __name__ == "__main__":
@@ -140,3 +139,6 @@ if __name__ == "__main__":
     ufw = UFW()
     ct = ConnTrack()
     tests()
+    # Restoring firewall options
+    ufw.ufw_restore_rules()
+    ufw.ufw_disable()
