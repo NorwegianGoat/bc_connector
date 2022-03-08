@@ -12,7 +12,8 @@
                 "erc721Handler": "0x3258B78db18fb809945C58eC645A45ec38808A34",
                 "genericHandler": "",
                 "minGasPrice": "1",
-                "http": "true"
+                "http": "true",
+                "blockConfirmations": "0"
             }
         },
         {
@@ -27,7 +28,8 @@
                 "erc721Handler": "0xAd28ab39509672F4D621206710654bd875D5fEa2",
                 "genericHandler": "",
                 "minGasPrice": "1",
-                "http": "true"
+                "http": "true",
+                "blockConfirmations": "0"
             }
         }
     ]

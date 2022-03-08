@@ -26,8 +26,6 @@ class CBWrapper():
         else:
             if self.is_chainbridge_running():
                 logging.info("Bridge already running, it will not be started")
-            else:
-                self.start_relay()
 
     def _basic_config(self, gateway: str, pkey: str, gas: int):
         return ['cb-sol-cli', '--url', gateway, '--privateKey',
@@ -49,7 +47,7 @@ class CBWrapper():
 
     def start_relay(self):
         params = ['nohup', 'chainbridge', '--config',
-                  os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '--latest', '&']
+                  os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '&']
         logging.info("Starting chainbridge relay")
         subprocess.Popen(params, cwd=os.path.realpath('..'))
 
