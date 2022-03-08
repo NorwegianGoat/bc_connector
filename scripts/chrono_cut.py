@@ -15,8 +15,8 @@ import os
 N0_C0_URL = "http://192.168.1.110:8545"
 N0_C1_URL = "http://192.168.1.120:8545"
 N0_C2_URL = "http://192.168.1.130:8545"
-CHAIN0 = ['192.168.1.110','192.168.1.111', '192.168.1.112', '192.168.1.113']
-CHAIN1 = ['192.168.1.120','192.168.1.121', '192.168.1.122', '192.168.1.123']
+CHAIN0 = ['192.168.1.110', '192.168.1.111', '192.168.1.112', '192.168.1.113']
+CHAIN1 = ['192.168.1.120', '192.168.1.121', '192.168.1.122', '192.168.1.123']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
 
@@ -108,19 +108,23 @@ def simple_token_transfer(amount: int, type: ContractTypes):
 def transfer_conn_lock():
     logging.info("Erc20 transfer with connection lock.")
     # Dest chain is unreachable (e.g. a muntain hut)
-    block_connections(CHAIN1)
+    block_connections([CHAIN1[0]])
     # Basic erc20 transfer is fired. We block our funds in our city
     simple_token_transfer(1, ContractTypes.ERC20)
-    # We go away from our city and we reach the hut (i.e. source chain is unreachable, dest chain is reachable)
+    time.sleep(30)  # Wait relay catch transaction
+    # We go away from our city and we reach the hut
+    # (i.e. source chain is unreachable, dest chain is reachable)
     block_connections(CHAIN0[1:])
-    unblock_connections(CHAIN1)
+    unblock_connections([CHAIN1[0]])
+    time.sleep(30)
+    # Test finished, we unblock all the connections so other test doesn't have issues
+    unblock_connections(CHAIN0[1:])
 
 
 def tests():
     logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
     transfer_conn_lock()
-    
 
 
 if __name__ == "__main__":
