@@ -149,7 +149,7 @@ def tests():
     # simple_token_transfer(1, ContractTypes.ERC20, n0, n1, True) # Foward
     # simple_token_transfer(1, ContractTypes.ERC20, n1, n0) # Backward
     # transfer_conn_lock()
-    transfer_conn_lock_back()
+    # transfer_conn_lock_back()
 
 
 if __name__ == "__main__":
@@ -167,10 +167,11 @@ if __name__ == "__main__":
     cb = CBWrapper()
     ufw = UFW()
     ct = ConnTrack()
+    ufw.ufw_enable()
     if cb.is_chainbridge_running():
         cb.stop_relay()
-    ufw.ufw_enable()
     tests()
     # Restoring firewall options
     ufw.ufw_restore_rules()
     ufw.ufw_disable()
+    cb.start_relay()

@@ -20,3 +20,8 @@ class Node():
 
     def __str__(self) -> str:
         return "Endpoint: " + self.node_endpoint + " Chain Id: " + self.chain_id
+
+if __name__=='__main__':
+    n= Node("http://192.168.1.120:8545")
+    tx= n.provider.eth.get_transaction_receipt('0x52e037ce089fabebe3ee8bbd5c197e9e4800888ed34b6dc996776ed0aa1ac87b')
+    print(tx)
