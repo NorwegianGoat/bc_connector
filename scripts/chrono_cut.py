@@ -1,4 +1,5 @@
 import logging
+from multiprocessing.connection import wait
 from typing import List
 from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
@@ -82,35 +83,38 @@ def deploy_bridge(type: ContractTypes):
     cb.update_config_json(n1.chain_id, type)
 
 
-def simple_token_transfer(amount: int, type: ContractTypes):
-    logging.info("Transferring " + str(amount) + " tokens")
+def simple_token_transfer(amount: int, type: ContractTypes, source: Node, dest: Node, mint: bool = False):
+    logging.info("Transferring amount %i of tokens from chain %i to chain %i" % (
+        amount, source.chain_id, dest.chain_id))
     # Redeem tokens for this test
-    redeem_tokens(n0.provider, acc, n0.provider.toWei(amount, 'ether'), type)
+    if mint:
+        redeem_tokens(source.provider, acc,
+                      source.provider.toWei(amount, 'ether'), type)
     # Gets the contract addresses for this type of transfer and the associated resource id
-    contracts = available_contracts(n0.chain_id, type)
-    res_id = available_resources(n0.chain_id, contracts['target'].id)
+    contracts = available_contracts(source.chain_id, type)
+    res_id = available_resources(source.chain_id, contracts['target'].id)
     if type == ContractTypes.ERC721:
         # For each nft fires an approve and transfer
         for i in range(amount):
-            id = token_of_owner_by_index(n0.provider, acc.address, 0)
-            cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, id,
+            id = token_of_owner_by_index(source.provider, acc.address, 0)
+            cb.approve(source.node_endpoint, acc.key.hex(), 100000, type, id,
                        contracts['target'].address, contracts['handler'].address)
-            cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, id,
-                       45, contracts['bridge'].address, acc.address, res_id)
+            cb.deposit(source.node_endpoint, acc.key.hex(), 100000, type, id,
+                       dest.chain_id, contracts['bridge'].address, acc.address, res_id)
     elif type == ContractTypes.ERC20:
         # For erc20 we need just one request
-        cb.approve(n0.node_endpoint, acc.key.hex(), 100000, type, amount,
+        cb.approve(source.node_endpoint, acc.key.hex(), 100000, type, amount,
                    contracts['target'].address, contracts['handler'].address)
-        cb.deposit(n0.node_endpoint, acc.key.hex(), 100000, type, amount,
-                   45, contracts['bridge'].address, acc.address, res_id)
+        cb.deposit(source.node_endpoint, acc.key.hex(), 100000, type, amount,
+                   dest.chain_id, contracts['bridge'].address, acc.address, res_id)
 
 
-def transfer_conn_lock():
+def transfer_conn_lock(mint: bool = False):
     logging.info("Erc20 transfer with connection lock.")
     # Dest chain is unreachable (e.g. a muntain hut)
     block_connections([CHAIN1[0]])
     # Basic erc20 transfer is fired. We block our funds in our city
-    simple_token_transfer(1, ContractTypes.ERC20)
+    simple_token_transfer(1, ContractTypes.ERC20, n0, n1, mint)
     # We go away from our city and we reach the hut
     # (i.e. source chain is unreachable, dest chain is reachable)
     block_connections(CHAIN0[1:])
@@ -122,10 +126,30 @@ def transfer_conn_lock():
     unblock_connections(CHAIN0[1:])
 
 
+def transfer_conn_lock_back(mint: bool = False):
+    logging.info("Erc20 transfer funds backwards.")
+    simple_token_transfer(1, ContractTypes.ERC20, n1, n0, mint)
+    # Source chain is not reachable anymore
+    block_connections([CHAIN1[0]])
+    # Relay is started (since we haven't blocked the dest we don't need to unlock it).
+    # For the next simulations dest will not be blocked and unlocked every time.
+    # If we start the relay when we "arrive" ad destination the effect is the same.
+    cb.start_relay()
+    # TODO: Clearly the relay can't catch the deposit event, because source chain
+    # is unreachable. We need to spin un a local node with source chain history
+    # before going away.
+    time.sleep(WAIT)
+    cb.stop_relay()
+    unblock_connections([CHAIN1[0]])
+
+
 def tests():
     logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
-    transfer_conn_lock()
+    # simple_token_transfer(1, ContractTypes.ERC20, n0, n1, True) # Foward
+    # simple_token_transfer(1, ContractTypes.ERC20, n1, n0) # Backward
+    # transfer_conn_lock()
+    transfer_conn_lock_back()
 
 
 if __name__ == "__main__":
@@ -143,6 +167,9 @@ if __name__ == "__main__":
     cb = CBWrapper()
     ufw = UFW()
     ct = ConnTrack()
+    if cb.is_chainbridge_running():
+        cb.stop_relay()
+    ufw.ufw_enable()
     tests()
     # Restoring firewall options
     ufw.ufw_restore_rules()

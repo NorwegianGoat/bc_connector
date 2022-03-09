@@ -17,7 +17,6 @@ class UFW():
     def __init__(self):
         self.is_installed = check_package("ufw")
         if self.is_installed:
-            self.ufw_enable()
             self.ufw_backup_rules()
         else:
             exit("ufw seems not to be installed, can't do anything.")
