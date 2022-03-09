@@ -22,7 +22,6 @@ class CBWrapper():
         if not self.cb_sol_cli:
             exit("No cb-sol-cli. Please install cb-sol-cli.")
         if not self.chainbridge:
-            self.start_relay()
             print("Chainbridge relayer not installed")
         else:
             if self.is_chainbridge_running():
