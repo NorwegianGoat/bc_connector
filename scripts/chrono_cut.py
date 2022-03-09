@@ -113,10 +113,10 @@ def transfer_conn_lock():
     simple_token_transfer(1, ContractTypes.ERC20)
     # We go away from our city and we reach the hut
     # (i.e. source chain is unreachable, dest chain is reachable)
+    time.sleep(10)
     block_connections(CHAIN0[1:])
     unblock_connections([CHAIN1[0]])
-    cb.start_relay()
-    time.sleep(10)
+    time.sleep(60)
     # Test finished, we unblock all the connections so other test doesn't have issues
     cb.stop_relay()
     unblock_connections(CHAIN0[1:])
