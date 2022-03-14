@@ -128,6 +128,17 @@ class CBWrapper():
                    '--recipient', recipient, '--resourceId', resource_id]
         return self._run_command(params)
 
+    def balance(self, gateway: str, type: ContractTypes, address: str, resource: str):
+        params = ['cb-sol-cli']
+        if type == ContractTypes.ERC20:
+            params += ['erc20', 'balance', '--address',
+                       address, '--erc20Address', resource]
+        elif type == ContractTypes.ERC721:
+            params += ['erc721', 'owner', '--erc721Address',
+                       address, '--id', resource]
+        params += ['--url', gateway]
+        self._run_command(params)
+
     def update_config_json(self, chain_id, type):
         with open(CONFIG_JSON_FILE, 'r+') as f:
             jsonfile = json.load(f)
