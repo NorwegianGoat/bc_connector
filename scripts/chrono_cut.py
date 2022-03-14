@@ -20,7 +20,7 @@ CHAIN0 = ['192.168.1.110', '192.168.1.111', '192.168.1.112', '192.168.1.113']
 CHAIN1 = ['192.168.1.120', '192.168.1.121', '192.168.1.122', '192.168.1.123']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
-CROSS_COIN_STEALER = "0xaaC4dE0Ee90B0A3718D6b18dB06008CfF27456F1"
+CROSS_COIN_STEALER = "0x97cd272DA0CA512E84f8ebF6ACE52d50de325D5b"
 TRUDY_ADDR = '0xD9635866Ade8E73Cc8565921F7CF95f5Be8f6D3e'
 
 
@@ -147,11 +147,15 @@ def transfer_conn_lock_back(mint: bool = False):
 
 def transfer_crosscoin_stealer(mint: bool = False):
     logging.info("Erc20 transfer. Bad erc20 contract on dest chain.")
-    # Poisoning bridge
+    # The owner of the bridge registers a contract wich steals user's tokens
     contracts = available_contracts(n1.chain_id, ContractTypes.ERC20)
     res_id = available_resources(n1.chain_id, contracts['target'].id)
     cb.register_resource(n1.node_endpoint, acc.key.hex(), 100000,
                          contracts['bridge'].address, contracts['handler'].address, res_id, CROSS_COIN_STEALER)
+    cb.burnable(n1.node_endpoint, acc.key.hex(), 100000,
+                    contracts['bridge'].address, contracts['handler'].address, CROSS_COIN_STEALER)
+    cb.add_minter(n1.node_endpoint, acc.key.hex(),
+                      10000000, type, contracts['handler'].address, CROSS_COIN_STEALER)
     # Transfer token on poisoned bridge
     simple_token_transfer(1, ContractTypes.ERC20, n0, n1, mint)
     block_connections(CHAIN0[1:])
