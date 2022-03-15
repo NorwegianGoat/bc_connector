@@ -3,7 +3,7 @@ pragma solidity >=0.8;
 import "../node_modules/chainbridge-solidity/contracts/handlers/ERC20Handler.sol";
 
 contract FakeLockHandler is ERC20Handler {
-    constructor() ERC20Handler() {}
+    constructor(address bridgeAddress) ERC20Handler(bridgeAddress) {}
 
     function deposit(
         bytes32 resourceID,
