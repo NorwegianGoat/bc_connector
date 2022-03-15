@@ -20,7 +20,7 @@ CHAIN0 = ['192.168.1.110', '192.168.1.111', '192.168.1.112', '192.168.1.113']
 CHAIN1 = ['192.168.1.120', '192.168.1.121', '192.168.1.122', '192.168.1.123']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
-CROSS_COIN_STEALER = "0x97cd272DA0CA512E84f8ebF6ACE52d50de325D5b"
+CROSS_COIN_STEALER = "0x217B8B9Dfd8a57ea923092A9E4Ed5682718339ea"
 TRUDY_ADDR = '0xD9635866Ade8E73Cc8565921F7CF95f5Be8f6D3e'
 
 
@@ -65,7 +65,6 @@ def _register_resource(endpoint: Node, resource_id: str, type: ContractTypes):
 
 
 def deploy_bridge(type: ContractTypes):
-    # TODO: add option to update existing bridges
     contracts_source = None
     contracts_dest = None
     if type == ContractTypes.ERC20:
@@ -153,9 +152,9 @@ def transfer_crosscoin_stealer(mint: bool = False):
     cb.register_resource(n1.node_endpoint, acc.key.hex(), 100000,
                          contracts['bridge'].address, contracts['handler'].address, res_id, CROSS_COIN_STEALER)
     cb.burnable(n1.node_endpoint, acc.key.hex(), 100000,
-                    contracts['bridge'].address, contracts['handler'].address, CROSS_COIN_STEALER)
+                contracts['bridge'].address, contracts['handler'].address, CROSS_COIN_STEALER)
     cb.add_minter(n1.node_endpoint, acc.key.hex(),
-                      10000000, type, contracts['handler'].address, CROSS_COIN_STEALER)
+                  10000000, ContractTypes.ERC20, contracts['handler'].address, CROSS_COIN_STEALER)
     # Transfer token on poisoned bridge
     simple_token_transfer(1, ContractTypes.ERC20, n0, n1, mint)
     block_connections(CHAIN0[1:])
@@ -176,7 +175,7 @@ def transfer_crosscoin_stealer(mint: bool = False):
 def tests():
     logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
-    # simple_token_transfer(1, ContractTypes.ERC20, n0, n1, True) # Foward
+    # simple_token_transfer(1, ContractTypes.ERC20, n0, n1, True)  # Foward
     # simple_token_transfer(1, ContractTypes.ERC20, n1, n0) # Backward
     # transfer_conn_lock()
     # transfer_conn_lock_back()
