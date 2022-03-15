@@ -18,9 +18,12 @@ N0_C1_URL = "http://192.168.1.120:8545"
 N0_C2_URL = "http://192.168.1.130:8545"
 CHAIN0 = ['192.168.1.110', '192.168.1.111', '192.168.1.112', '192.168.1.113']
 CHAIN1 = ['192.168.1.120', '192.168.1.121', '192.168.1.122', '192.168.1.123']
+CHAIN2 = ['192.168.1.130', '192.168.1.131', '192.168.1.132', '192.168.1.133']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
+# The following contracts are malicious versions of chainbridge contracts
 CROSS_COIN_STEALER = "0x217B8B9Dfd8a57ea923092A9E4Ed5682718339ea"
+FAKE_LOCK_HANDLER = "0xb355b0b2c88d0333B77d2D641663AF7888DC26BD"
 TRUDY_ADDR = '0xD9635866Ade8E73Cc8565921F7CF95f5Be8f6D3e'
 
 
@@ -172,6 +175,38 @@ def transfer_crosscoin_stealer(mint: bool = False):
     unblock_connections(CHAIN0[1:])
 
 
+def fakelock_attack(mint=False):
+    logging.info(
+        "Fakelock attack. The handler does not lock users funds on source chain.")
+    # Pointing to the fakelock bridge.
+    contracts = available_contracts(n0.chain_id, ContractTypes.ERC20)
+    target_cotntract = available_contracts(n1.chain_id, ContractTypes.ERC20)['target'].address
+    res_id = available_resources(n0.chain_id, contracts['target'].id)
+    cb.register_resource(n0.node_endpoint, acc.key.hex(), 100000,
+                         contracts['bridge'].address, FAKE_LOCK_HANDLER, res_id, contracts['target'].address)
+    redeem_tokens(n0.provider, acc,
+                  n0.provider.toWei(1, 'ether'), ContractTypes.ERC20)
+    # Balance before the transfer with fakelock bridge
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, contracts['target'].address)
+    # User sends spend tokens
+    simple_token_transfer(1, ContractTypes.ERC20, n0, n1, mint)
+    block_connections(CHAIN0[1:])
+    cb.start_relay()
+    time.sleep(WAIT)
+    # Balance on dest
+    cb.balance(n1.node_endpoint, ContractTypes.ERC20,
+               acc.address, target_cotntract)
+    # Balance on source is the same as before
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, contracts['target'].address)
+    # Test finished, unblock and restore old bridge
+    cb.stop_relay()
+    unblock_connections(CHAIN0[1:])
+    cb.register_resource(n0.node_endpoint, acc.key.hex(), 100000,
+                         contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
+
+
 def tests():
     logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
@@ -179,7 +214,8 @@ def tests():
     # simple_token_transfer(1, ContractTypes.ERC20, n1, n0) # Backward
     # transfer_conn_lock()
     # transfer_conn_lock_back()
-    transfer_crosscoin_stealer()
+    # transfer_crosscoin_stealer()
+    fakelock_attack()
 
 
 if __name__ == "__main__":
