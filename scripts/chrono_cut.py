@@ -213,8 +213,10 @@ def malicious_rollback(mint: bool = False):
     logging.info("Started malicious rollback test.")
     # Origin chain collusion -> make backup of the previous state
     for node in CHAIN0:
-        ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
-                   'python3', 'helper.py', 'backup', '&&', 'python3', 'helper.py', 'start_validator', '--ip', node])
+        ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py',
+                   'halt_node', '&&', 'python3', 'helper.py', 'backup', '--backup_name',
+                                  'malicious_rollback', '--override', 'true', '&&', 'python3', 'helper.py', 'start_validator',
+                                  '--ip', node])
     contracts = available_contracts(n0.chain_id, ContractTypes.ERC20)
     target_contract = available_contracts(
         n1.chain_id, ContractTypes.ERC20)['target'].address
@@ -235,7 +237,8 @@ def malicious_rollback(mint: bool = False):
     # Restore the old state
     for node in CHAIN0:
         ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
-                   'python3', 'helper.py', 'restore_backup', '&&', 'python3', 'helper.py', 'start_validator', '--ip', node])
+                   'python3', 'helper.py', 'restore_backup', '--backup_path', './edge/collusion_test',
+                                  '&&', 'python3', 'helper.py', 'start_validator', '--ip', node])
     # Balance on source is the same as before
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, contracts['target'].address)
