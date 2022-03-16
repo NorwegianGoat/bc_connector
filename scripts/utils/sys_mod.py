@@ -1,5 +1,6 @@
 import subprocess
 import logging
+from typing import List
 
 
 def check_package(pkg_name: str) -> bool:
@@ -19,3 +20,10 @@ def check_program(pg_name: str) -> bool:
     is_present = not is_present.returncode
     logging.info(pg_name + " found" if is_present else " not available.")
     return is_present
+
+
+def ssh_helper(ip: str, user: str, command: List[str]):
+    # It requires pubkey auth configured
+    command.insert(0, "ssh")
+    command.insert(1, user+'@'+ip)
+    subprocess.run(command)

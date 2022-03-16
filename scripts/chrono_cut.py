@@ -7,6 +7,7 @@ from model.node import Node
 from model.contract import ContractTypes
 from urllib.parse import urlparse
 from utils.cb_wrapper import CBWrapper
+from utils.sys_mod import ssh_helper
 from utils.resource_manager import *
 from utils.cc_redeem import redeem_tokens, token_of_owner_by_index
 import random
@@ -180,7 +181,8 @@ def fakelock_attack(mint=False):
         "Fakelock attack. The handler does not lock users funds on source chain.")
     # Pointing to the fakelock bridge.
     contracts = available_contracts(n0.chain_id, ContractTypes.ERC20)
-    target_cotntract = available_contracts(n1.chain_id, ContractTypes.ERC20)['target'].address
+    target_contract = available_contracts(
+        n1.chain_id, ContractTypes.ERC20)['target'].address
     res_id = available_resources(n0.chain_id, contracts['target'].id)
     cb.register_resource(n0.node_endpoint, acc.key.hex(), 100000,
                          contracts['bridge'].address, FAKE_LOCK_HANDLER, res_id, contracts['target'].address)
@@ -196,7 +198,7 @@ def fakelock_attack(mint=False):
     time.sleep(WAIT)
     # Balance on dest
     cb.balance(n1.node_endpoint, ContractTypes.ERC20,
-               acc.address, target_cotntract)
+               acc.address, target_contract)
     # Balance on source is the same as before
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, contracts['target'].address)
@@ -207,6 +209,41 @@ def fakelock_attack(mint=False):
                          contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
 
 
+def malicious_rollback(mint: bool = False):
+    logging.info("Started malicious rollback test.")
+    # Origin chain collusion -> make backup of the previous state
+    for node in CHAIN0:
+        ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
+                   'python3', 'helper.py', 'backup', '&&', 'python3', 'helper.py', 'start_validator', '--ip', node])
+    contracts = available_contracts(n0.chain_id, ContractTypes.ERC20)
+    target_contract = available_contracts(
+        n1.chain_id, ContractTypes.ERC20)['target'].address
+    # User's balance before the transfer
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, contracts['target'].address)
+    # User sends transfers the tokens
+    simple_token_transfer(1, ContractTypes.ERC20, n0, n1, mint)
+    # Balance after the transfer
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, contracts['target'].address)
+    block_connections(CHAIN0[1:])
+    cb.start_relay()
+    time.sleep(WAIT)
+    # Balance on dest
+    cb.balance(n1.node_endpoint, ContractTypes.ERC20,
+               acc.address, target_contract)
+    # Restore the old state
+    for node in CHAIN0:
+        ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
+                   'python3', 'helper.py', 'restore_backup', '&&', 'python3', 'helper.py', 'start_validator', '--ip', node])
+    # Balance on source is the same as before
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, contracts['target'].address)
+    # Test finished, unblock and restore old bridge
+    cb.stop_relay()
+    unblock_connections(CHAIN0[1:])
+
+
 def tests():
     logging.info("Starting tests.")
     # deploy_bridge(ContractTypes.ERC20)
@@ -215,7 +252,9 @@ def tests():
     # transfer_conn_lock()
     # transfer_conn_lock_back()
     # transfer_crosscoin_stealer()
-    fakelock_attack()
+    # fakelock_attack()
+    # TODO: Fakelock all'indietro non dovrebbe poter generare fondi perche` non sono stati sbloccati
+    malicious_rollback()
 
 
 if __name__ == "__main__":
