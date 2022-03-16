@@ -212,6 +212,7 @@ def fakelock_attack(mint=False):
 def malicious_rollback(mint: bool = False):
     logging.info("Started malicious rollback test.")
     # Origin chain collusion -> make backup of the previous state
+    # TODO: Fix node start
     for node in CHAIN0:
         ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py',
                    'halt_node', '&&', 'python3', 'helper.py', 'backup', '--backup_name',
@@ -234,17 +235,17 @@ def malicious_rollback(mint: bool = False):
     # Balance on dest
     cb.balance(n1.node_endpoint, ContractTypes.ERC20,
                acc.address, target_contract)
+    # Test finished, unblock and restore old bridge
+    cb.stop_relay()
+    unblock_connections(CHAIN0[1:])
     # Restore the old state
     for node in CHAIN0:
         ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
-                   'python3', 'helper.py', 'restore_backup', '--backup_path', './edge/collusion_test',
+                   'python3', 'helper.py', 'restore_backup', '--backup_path', './edge/malicious_rollback',
                                   '&&', 'python3', 'helper.py', 'start_validator', '--ip', node])
     # Balance on source is the same as before
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, contracts['target'].address)
-    # Test finished, unblock and restore old bridge
-    cb.stop_relay()
-    unblock_connections(CHAIN0[1:])
 
 
 def tests():
