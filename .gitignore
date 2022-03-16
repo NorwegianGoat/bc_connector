@@ -133,3 +133,4 @@ chainbridge_config.sh
 node_modules
 *.save
 *.db
+user.rules
