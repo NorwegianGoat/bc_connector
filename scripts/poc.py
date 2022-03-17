@@ -273,7 +273,7 @@ def concussion_attack(mint: bool = False):
     with open('crosscoin/build/contracts/Bridge.json') as f:
         abi = json.loads(f.read())['abi']
     contract = n0.provider.eth.contract(
-        address=contracts['handler'].address, abi=abi)
+        address=contracts['bridge'].address, abi=abi)
     ''' The new bridge implementation changed format for function params
     target = n0.provider.toBytes(
         hexstr=contracts['target'].address).rjust(32, b'\0')
@@ -294,6 +294,7 @@ def concussion_attack(mint: bool = False):
     tx_hash = n0.provider.eth.send_raw_transaction(
         signed_tx.rawTransaction)
     logging.info("adminWithdraw tx_hash: " + tx_hash.hex())
+    time.sleep(WAIT)
     # Trudy balance after the adminWithdraw
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                TRUDY_ADDR, contracts['target'].address)
