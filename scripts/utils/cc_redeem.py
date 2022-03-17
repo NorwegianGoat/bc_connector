@@ -41,8 +41,6 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: Contr
         signed_tx.rawTransaction)
     logging.info(account.address + ' is redeeming ' + str(quantity) + ' on chain ' + str(
         t_dict['chainId']) + " tx_hash " + tx_hash.hex())
-    tx_recipit = w3.eth.wait_for_transaction_receipt(tx_hash)
-    logging.debug(tx_recipit)
 
 
 def token_of_owner_by_index(w3:BaseProvider, address: str, index: int):
