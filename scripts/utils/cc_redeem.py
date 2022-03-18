@@ -10,8 +10,6 @@ from utils.resource_manager import available_contracts
 CC_ABI_PATH = 'crosscoin/build/contracts/CrossCoin.json'
 CN_ABI_PATH = 'crosscoin/build/contracts/CrossNft.json'
 PKEY_PATH = 'crosscoin/.secret'
-CC_CONTRACT = available_contracts(100, ContractTypes.ERC20)['target'].address
-CN_CONTRACT = available_contracts(100, ContractTypes.ERC721)['target'].address
 
 
 def _read_abi(abi_path: str):
@@ -22,10 +20,10 @@ def _read_abi(abi_path: str):
 
 def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: ContractTypes):
     if type == ContractTypes.ERC20:
-        addr = CC_CONTRACT
+        addr = available_contracts(w3.eth.chain_id, ContractTypes.ERC20)['target'].address
         abi_path = CC_ABI_PATH
     elif type == ContractTypes.ERC721:
-        addr = CN_CONTRACT
+        addr = available_contracts(w3.eth.chain_id, ContractTypes.ERC721)['target'].address
         abi_path = CN_ABI_PATH
     abi = _read_abi(abi_path)
     contract = w3.eth.contract(address=addr, abi=abi)
@@ -45,7 +43,7 @@ def redeem_tokens(w3: BaseProvider, account: Account, quantity: int, type: Contr
 
 def token_of_owner_by_index(w3:BaseProvider, address: str, index: int):
     abi_path = CN_ABI_PATH
-    addr = CN_CONTRACT
+    addr = available_contracts(w3.eth.chain_id, ContractTypes.ERC721)['target'].address
     abi = _read_abi(abi_path)
     contract = w3.eth.contract(address=addr, abi=abi)
     return contract.functions.tokenOfOwnerByIndex(address, index).call()
