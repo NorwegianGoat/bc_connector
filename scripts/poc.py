@@ -12,6 +12,7 @@ from utils.cb_wrapper import CBWrapper
 from utils.sys_mod import ssh_helper
 from utils.resource_manager import *
 from utils.cc_redeem import redeem_tokens, token_of_owner_by_index
+from eth_account.account import Account
 import random
 import os
 
@@ -39,6 +40,14 @@ def block_connections(endpoints: List[str]):
 def unblock_connections(endpoints: List[str]):
     for ip in endpoints:
         ufw.alter_config(ALLOW, ip)
+
+
+def _restore_bridge(endpoint: Node, type: ContractTypes):
+    contracts = available_contracts(
+        endpoint.chain_id, type)
+    res_id = available_resources(endpoint.chain_id, contracts['target'].id)
+    cb.register_resource(endpoint.node_endpoint, acc.key.hex(), 100000,
+                         contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
 
 
 def _deploy_bridge(endpoint: Node, contracts: List[ContractTypes]):
@@ -90,30 +99,34 @@ def deploy_bridge(type: ContractTypes):
     cb.update_config_json(n1.chain_id, type)
 
 
-def simple_token_transfer(amount: int, type: ContractTypes, recipient, source: Node, dest: Node, mint: bool = False):
+def simple_token_transfer(account: Account, amount: int, type: ContractTypes,
+                          source: Node, dest: Node, mint: bool = False, recipient: str = None):
     logging.info("Transferring amount %i of tokens from chain %i to chain %i" % (
         amount, source.chain_id, dest.chain_id))
     # Redeem tokens for this test
     if mint:
-        redeem_tokens(source.provider, recipient,
+        redeem_tokens(source.provider, account,
                       source.provider.toWei(amount, 'ether'), type)
     # Gets the contract addresses for this type of transfer and the associated resource id
     contracts = available_contracts(source.chain_id, type)
     res_id = available_resources(source.chain_id, contracts['target'].id)
+    # If recipient not specified is the same as the account which is firing the transaction
+    if not recipient:
+        recipient = account.address
     if type == ContractTypes.ERC721:
         # For each nft fires an approve and transfer
         for i in range(amount):
             id = token_of_owner_by_index(source.provider, recipient.address, 0)
-            cb.approve(source.node_endpoint, acc.key.hex(), 100000, type, id,
+            cb.approve(source.node_endpoint, account.key.hex(), 100000, type, id,
                        contracts['target'].address, contracts['handler'].address)
-            cb.deposit(source.node_endpoint, acc.key.hex(), 100000, type, id,
-                       dest.chain_id, contracts['bridge'].address, recipient.address, res_id)
+            cb.deposit(source.node_endpoint, account.key.hex(), 100000, type, id,
+                       dest.chain_id, contracts['bridge'].address, recipient, res_id)
     elif type == ContractTypes.ERC20:
         # For erc20 we need just one request
-        cb.approve(source.node_endpoint, acc.key.hex(), 100000, type, amount,
+        cb.approve(source.node_endpoint, account.key.hex(), 100000, type, amount,
                    contracts['target'].address, contracts['handler'].address)
-        cb.deposit(source.node_endpoint, acc.key.hex(), 100000, type, amount,
-                   dest.chain_id, contracts['bridge'].address, recipient.address, res_id)
+        cb.deposit(source.node_endpoint, account.key.hex(), 10000000, type, amount,
+                   dest.chain_id, contracts['bridge'].address, recipient, res_id)
 
 
 def transfer_conn_lock(mint: bool = False):
@@ -121,7 +134,7 @@ def transfer_conn_lock(mint: bool = False):
     # Dest chain is unreachable (e.g. a muntain hut)
     block_connections([CHAIN1[0]])
     # Basic erc20 transfer is fired. We block our funds in our city
-    simple_token_transfer(1, ContractTypes.ERC20, acc, n0, n1, mint)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, mint)
     # We go away from our city and we reach the hut
     # (i.e. source chain is unreachable, dest chain is reachable)
     block_connections(CHAIN0[1:])
@@ -135,7 +148,7 @@ def transfer_conn_lock(mint: bool = False):
 
 def transfer_conn_lock_back(mint: bool = False):
     logging.info("Erc20 transfer funds backwards.")
-    simple_token_transfer(1, ContractTypes.ERC20, acc, n1, n0, mint)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n1, n0, mint)
     # Source chain is not reachable anymore
     block_connections([CHAIN1[0]])
     # Relay is started (since we haven't blocked the dest we don't need to unlock it).
@@ -162,7 +175,7 @@ def transfer_crosscoin_stealer(mint: bool = False):
     cb.add_minter(n1.node_endpoint, acc.key.hex(),
                   10000000, ContractTypes.ERC20, contracts['handler'].address, CROSS_COIN_STEALER)
     # Transfer token on poisoned bridge
-    simple_token_transfer(1, ContractTypes.ERC20, acc, n0, n1, mint)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, mint)
     block_connections(CHAIN0[1:])
     cb.start_relay()
     time.sleep(WAIT)
@@ -172,8 +185,7 @@ def transfer_crosscoin_stealer(mint: bool = False):
     cb.balance(n1.node_endpoint, ContractTypes.ERC20,
                acc.address, CROSS_COIN_STEALER)
     # Test finished, unblock and restore old bridge
-    cb.register_resource(n1.node_endpoint, acc.key.hex(), 100000,
-                         contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
+    _restore_bridge(n1, ContractTypes.ERC20)
     cb.stop_relay()
     unblock_connections(CHAIN0[1:])
 
@@ -194,7 +206,7 @@ def fakelock_attack():
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, contracts['target'].address)
     # User sends spend tokens
-    simple_token_transfer(1, ContractTypes.ERC20, acc, n0, n1, False)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, False)
     block_connections(CHAIN0[1:])
     cb.start_relay()
     time.sleep(WAIT)
@@ -207,8 +219,7 @@ def fakelock_attack():
     # Test finished, unblock and restore old bridge
     cb.stop_relay()
     unblock_connections(CHAIN0[1:])
-    cb.register_resource(n0.node_endpoint, acc.key.hex(), 100000,
-                         contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
+    _restore_bridge(n0, ContractTypes.ERC20)
 
 
 def erc20_overflow(mint: bool = False):
@@ -220,13 +231,13 @@ def erc20_overflow(mint: bool = False):
                   10000000, ContractTypes.ERC20, trudy.address,
                   available_contracts(n1.chain_id, ContractTypes.ERC20)['target'].address)
     redeem_tokens(n1.provider, trudy, n1.provider.toWei(
-        40, "Ether"), ContractTypes.ERC20)
+        1, "Ether"), ContractTypes.ERC20)
     # Trudy and bridge before the overflow attack on source chain
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                trudy.address, contracts['target'].address)
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                contracts['handler'].address, contracts['target'].address)
-    simple_token_transfer(40, ContractTypes.ERC20, trudy, n1, n0, False)
+    simple_token_transfer(trudy, 1, ContractTypes.ERC20, n1, n0, False)
     # Moving forged tokens on source chain
     cb.start_relay()
     time.sleep(WAIT)
@@ -255,7 +266,7 @@ def malicious_rollback():
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, contracts['target'].address)
     # User sends transfers the tokens
-    simple_token_transfer(1, ContractTypes.ERC20, acc, n0, n1, False)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, False)
     # Balance after the transfer
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, contracts['target'].address)
@@ -288,7 +299,7 @@ def concussion_attack():
     amount = n0.provider.toWei(1, 'ether')
     redeem_tokens(n0.provider, acc,
                   amount, ContractTypes.ERC20)
-    simple_token_transfer(1, ContractTypes.ERC20, acc, n0, n1, False)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, False)
     contracts = available_contracts(n0.chain_id, ContractTypes.ERC20)
     # Trudy address before the steal
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
@@ -325,7 +336,8 @@ def concussion_attack():
     # Trudy balance after the adminWithdraw
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                trudy.address, contracts['target'].address)
-    # Tokens bridged balance after withdraw
+    # Bridge token balance after withdraw. Tokens where given to trudy, other
+    # users can't bridge back their funds.
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                contracts['handler'].address, contracts['target'].address)
 
@@ -355,7 +367,7 @@ if __name__ == "__main__":
     # Configuring nodes
     n0 = Node(N0_C0_URL)
     n1 = Node(N0_C1_URL)
-    #n2 = Node(N0_C2_URL)
+    # n2 = Node(N0_C2_URL)
     # Configuring test accounts
     with open(PKEY_PATH) as f:
         key = f.readline().strip()
