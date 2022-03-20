@@ -79,7 +79,7 @@ def _register_resource(endpoint: Node, resource_id: str, type: ContractTypes):
     return resource_id
 
 
-def deploy_bridge(type: ContractTypes):
+def deploy_main_bridge(source: Node, dest: Node, type: ContractTypes):
     contracts_source = None
     contracts_dest = None
     if type == ContractTypes.ERC20:
@@ -90,13 +90,13 @@ def deploy_bridge(type: ContractTypes):
         contracts_source = [ContractTypes.BRIDGE, ContractTypes.ERC721_HANDLER]
         contracts_dest = [ContractTypes.BRIDGE,
                           ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
-    _deploy_bridge(n0, contracts_source)
-    _deploy_bridge(n1, contracts_dest)
+    _deploy_bridge(source, contracts_source)
+    _deploy_bridge(dest, contracts_dest)
     # The vulnerability in the whole process is the fact that the user is the ralayer
-    res_id_origin = _register_resource(n0, None, type)
-    _register_resource(n1, res_id_origin, type)
-    cb.update_config_json(n0.chain_id, type)
-    cb.update_config_json(n1.chain_id, type)
+    res_id_origin = _register_resource(source, None, type)
+    _register_resource(dest, res_id_origin, type)
+    cb.update_config_json(source, type)
+    cb.update_config_json(dest, type)
 
 
 def simple_token_transfer(account: Account, amount: int, type: ContractTypes,
@@ -332,6 +332,7 @@ def concussion_attack():
     tx_hash = n0.provider.eth.send_raw_transaction(
         signed_tx.rawTransaction)
     logging.info("adminWithdraw tx_hash: " + tx_hash.hex())
+    cb.start_relay()
     time.sleep(WAIT)
     # Trudy balance after the adminWithdraw
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
@@ -340,25 +341,49 @@ def concussion_attack():
     # users can't bridge back their funds.
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                contracts['handler'].address, contracts['target'].address)
+    cb.stop_relay()
+
+
+def _deploy_bridge_fakechain(dest: Node, type: ContractTypes):
+    contracts_dest = None
+    if type == ContractTypes.ERC20:
+        contracts_dest = [ContractTypes.BRIDGE,
+                          ContractTypes.ERC20_HANDLER, ContractTypes.ERC20]
+    elif type == ContractTypes.ERC721:
+        contracts_dest = [ContractTypes.BRIDGE,
+                          ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
+    # Deploy contract on fakechain
+    _deploy_bridge(dest, contracts_dest)
+    res_id = available_resources(n0.chain_id, available_contracts(
+        n0.chain_id, ContractTypes.ERC20)['target'].id)
+    # Register the resource with the same id as source
+    _register_resource(dest, res_id, type)
+
+
+def bridge_deflection(dest: Node, type: ContractTypes):
+    #_deploy_bridge_fakechain(dest, type)
+    cb.update_config_json(dest, type)
+    cb.stop_relay()
+    # Mint token on fake dest
+    # Send them to source
+    # Restore old config.json file
+    cb.update_config_json(n1, type)
+    cb.stop_relay()
 
 
 def tests():
     logging.info("Starting tests.")
-    # deploy_bridge(ContractTypes.ERC20)
+    # deploy_main_bridge(n0, n1, ContractTypes.ERC20)
     # simple_token_transfer(1, ContractTypes.ERC20, n0, n1, True)  # Foward
     # simple_token_transfer(1, ContractTypes.ERC20, n1, n0) # Backward
     # transfer_conn_lock()
     # transfer_conn_lock_back()
     # transfer_crosscoin_stealer()
     # fakelock_attack()
-    erc20_overflow()
-    '''TODO: Una volta spostati fondi senza averli bloccati, lo spostamento
-    all'indietro non dovrebbe funzionare in quanto non sono mai stati bloccati.
-    Questo pero` non e` garantito perche` potrei andare a sbloccare fondi di
-    altri utenti, intascandomeli.'''
+    # erc20_overflow()
     # malicious_rollback()
     # concussion_attack()
-
+    bridge_deflection(n2, ContractTypes.ERC20)
     logging.info("Finished tests.")
 
 
@@ -367,7 +392,7 @@ if __name__ == "__main__":
     # Configuring nodes
     n0 = Node(N0_C0_URL)
     n1 = Node(N0_C1_URL)
-    # n2 = Node(N0_C2_URL)
+    n2 = Node(N0_C2_URL)
     # Configuring test accounts
     with open(PKEY_PATH) as f:
         key = f.readline().strip()

@@ -3,6 +3,7 @@ from typing import List
 from utils.sys_mod import check_program
 from utils.resource_manager import available_contracts
 from model.contract import ContractTypes
+from model.node import Node
 import logging
 import os
 import json
@@ -139,13 +140,19 @@ class CBWrapper():
         params += ['--url', gateway]
         self._run_command(params)
 
-    def update_config_json(self, chain_id, type):
+    def update_config_json(self, endpoint: Node, type):
+        logging.info("Updating chainbridge conf.")
+        if self.is_chainbridge_running():
+            self.stop_relay()
+        chain_id = endpoint.chain_id
         with open(CONFIG_JSON_FILE, 'r+') as f:
             jsonfile = json.load(f)
             contracts = available_contracts(chain_id, type)
+            has_chain = False
             # we search for the right chain config json object in the whole list
             for i in range(len(jsonfile['chains'])):
                 if jsonfile['chains'][i]['id'] == str(chain_id):
+                    has_chain = True
                     # For each contract available in the chain we update the address on the json
                     # so it makes no difference if we used a erc20/721/generic handler contract
                     for contract in contracts.values():
@@ -155,9 +162,18 @@ class CBWrapper():
                             pass
                         else:
                             jsonfile['chains'][i]['opts'][contract.type] = contract.address
-                    f.seek(0)
-                    f.truncate()
-                    json.dump(jsonfile, f, indent=4)
-                    break
-        self.stop_relay()
+            if not has_chain:
+                # We configure the second chain item as a new chain
+                jsonfile['chains'][1]['id'] = str(chain_id)
+                jsonfile['chains'][1]['endpoint'] = endpoint.node_endpoint
+                for contract in contracts.values():
+                    if contract.type == 'erc20' or contract.type == 'erc721':
+                        # The config file does not contain the erc20/721 endpoint
+                        # so we skip them
+                        pass
+                    else:
+                        jsonfile['chains'][1]['opts'][contract.type] = contract.address
+            f.seek(0)
+            f.truncate()
+            json.dump(jsonfile, f, indent=4)
         self.start_relay()
