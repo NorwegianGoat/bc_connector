@@ -361,11 +361,28 @@ def _deploy_bridge_fakechain(dest: Node, type: ContractTypes):
 
 
 def bridge_deflection(dest: Node, type: ContractTypes):
-    #_deploy_bridge_fakechain(dest, type)
+    # _deploy_bridge_fakechain(dest, type)
     cb.update_config_json(dest, type)
     cb.stop_relay()
-    # Mint token on fake dest
-    # Send them to source
+    # Mint token on fake source (chain 2)
+    contracts = available_contracts(n2.chain_id, ContractTypes.ERC20)
+    cb.add_minter(n2.node_endpoint, acc.key.hex(),
+                  10000000, ContractTypes.ERC20, acc.address,
+                  contracts['target'].address)
+    redeem_tokens(n2.provider, acc, n2.provider.toWei(
+        1, "Ether"), ContractTypes.ERC20)
+    # Send the tokens to source from chain 2 (fakechain)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n2, n0, False)
+    # Balance before transmitting the event
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, available_contracts(n0.chain_id,
+                                                ContractTypes.ERC20)['target'].address)
+    cb.start_relay()
+    time.sleep(WAIT)
+    # Balance after event transmission
+    cb.balance(n0.node_endpoint, ContractTypes.ERC20,
+               acc.address, available_contracts(n0.chain_id,
+                                                ContractTypes.ERC20)['target'].address)
     # Restore old config.json file
     cb.update_config_json(n1, type)
     cb.stop_relay()
