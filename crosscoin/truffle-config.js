@@ -88,6 +88,14 @@ module.exports = {
       timeoutBlocks: 200,
       skipDryRun: true
     },
+    goatchain2: {
+      provider: () => new HDWalletProvider(pkey, `http://192.168.1.130:8545`),
+      network_id: 45,
+      gas: 5500000,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: true
+    },
   },
 
   // Set default mocha options here, use special reporters etc.
