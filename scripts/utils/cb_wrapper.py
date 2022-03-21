@@ -58,7 +58,7 @@ class CBWrapper():
         logging.info("Stopping chainbridge relay")
         params = ['pgrep', 'chainbridge']
         relay = subprocess.Popen(params,stdout=subprocess.PIPE)
-        subprocess.run(['xargs','kill'],stdin=relay.stdout)
+        subprocess.run(['xargs','-I{}','kill',"{}"],stdin=relay.stdout)
 
     def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[ContractTypes],
                relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
