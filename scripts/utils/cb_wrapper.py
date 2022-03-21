@@ -46,9 +46,11 @@ class CBWrapper():
         else:
             return False
 
-    def start_relay(self):
+    def start_relay(self, latest:bool=False):
         params = ['nohup', 'chainbridge', '--config',
                   os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '&']
+        if latest:
+            params.insert(-1, "--latest")
         logging.info("Starting chainbridge relay")
         subprocess.Popen(params, cwd=os.path.realpath('..'))
 
@@ -153,6 +155,8 @@ class CBWrapper():
             for i in range(len(jsonfile['chains'])):
                 if jsonfile['chains'][i]['id'] == str(chain_id):
                     has_chain = True
+                    # Node endpoint may be changed!
+                    jsonfile['chains'][i]['endpoint'] = endpoint.node_endpoint
                     # For each contract available in the chain we update the address on the json
                     # so it makes no difference if we used a erc20/721/generic handler contract
                     for contract in contracts.values():
