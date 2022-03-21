@@ -57,14 +57,19 @@ class CBWrapper():
     def stop_relay(self):
         logging.info("Stopping chainbridge relay")
         params = ['pgrep', 'chainbridge']
-        relay = subprocess.Popen(params,stdout=subprocess.PIPE)
-        subprocess.run(['xargs','-I{}','kill',"{}"],stdin=relay.stdout)
+        relay = subprocess.Popen(params, stdout=subprocess.PIPE)
+        subprocess.run(['xargs', '-I{}', 'kill', "{}"], stdin=relay.stdout)
 
     def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[ContractTypes],
                relayer_addresses: List[str], relayer_threshold: int, chain_id: int):
         params = self._basic_config(gateway, pkey, gas)
         params.append('deploy')
-        params += ["--"+contract for contract in contracts_to_deploy]
+        for contract in contracts_to_deploy:
+            # If the list contains an address it is used as bridge address
+            if "0x" in contract:
+                params += ['--bridgeAddress', contract]
+            else:
+                params += ["--"+contract]
         if ContractTypes.BRIDGE in contracts_to_deploy:
             params.append('--relayers')
             params += relayer_addresses
