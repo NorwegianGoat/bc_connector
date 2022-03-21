@@ -403,8 +403,8 @@ def chain_id_collision(dest: Node, type: ContractTypes):
     simple_token_transfer(acc, 1, ContractTypes.ERC20, n0, n1, True)
     redeem_tokens(dest.provider, acc, dest.provider.toWei(
         1, "Ether"), ContractTypes.ERC20)
-    simple_token_transfer(acc, 1, ContractTypes.ERC20, dest, n0, False)
     cb.start_relay(latest=True)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, dest, n0, False)
     time.sleep(WAIT)
     # Balance after event transmission
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
