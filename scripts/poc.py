@@ -2,6 +2,7 @@ import logging
 from multiprocessing.connection import wait
 from typing import List
 import eth_utils
+import shutil
 import json
 from utils.ufw_mod import UFW, REJECT, ALLOW
 from utils.conntrack_mod import ConnTrack
@@ -361,31 +362,52 @@ def _deploy_bridge_fakechain(dest: Node, type: ContractTypes):
 
 
 def bridge_deflection(dest: Node, type: ContractTypes):
-    # _deploy_bridge_fakechain(dest, type)
+    # The new bridge overwrites the contracts for chain 45,
+    # so we backup the file to restore it after the test finishes
+    shutil.copy(BC_RESOURCES_PATH, BC_RESOURCES_PATH + ".old")
+    _deploy_bridge_fakechain(dest, type)
     cb.update_config_json(dest, type)
     cb.stop_relay()
-    # Mint token on fake source (chain 2)
     contracts = available_contracts(n2.chain_id, ContractTypes.ERC20)
+    # Set deposit nonce on bridge (fake chain) otherwise the dest chain sees that
+    # this deposit already exists
+    '''with open('crosscoin/build/contracts/Bridge.json') as f:
+        abi = json.loads(f.read())['abi']
+    contract = n2.provider.eth.contract(
+        address=contracts['bridge'].address, abi=abi)
+    t_dict = {"chainId": n2.chain_id,
+              "nonce": n2.provider.eth.get_transaction_count(acc.address, 'pending'),
+              "gasPrice": n2.provider.toWei(10, "gwei"),
+              "gas": 1000000}
+    tx = contract.functions.adminSetDepositNonce(
+        n0.chain_id, random.randint(100000, 999999)).buildTransaction(t_dict)
+    signed_tx = n2.provider.eth.account.sign_transaction(tx, acc.key)
+    tx_hash = n2.provider.eth.send_raw_transaction(
+        signed_tx.rawTransaction)
+    logging.info("adminSetDepositNonce tx_hash: " + tx_hash.hex())'''
+    # Mint token on fake source (chain 2)
     cb.add_minter(n2.node_endpoint, acc.key.hex(),
                   10000000, ContractTypes.ERC20, acc.address,
                   contracts['target'].address)
     redeem_tokens(n2.provider, acc, n2.provider.toWei(
         1, "Ether"), ContractTypes.ERC20)
-    # Send the tokens to source from chain 2 (fakechain)
-    simple_token_transfer(acc, 1, ContractTypes.ERC20, n2, n0, False)
-    # Balance before transmitting the event
+    # Balance on source before generating the event
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, available_contracts(n0.chain_id,
                                                 ContractTypes.ERC20)['target'].address)
-    cb.start_relay()
+    # Send the tokens to source from chain 2 (fakechain)
+    cb.start_relay(latest=True)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, n2, n0, False)
     time.sleep(WAIT)
     # Balance after event transmission
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, available_contracts(n0.chain_id,
                                                 ContractTypes.ERC20)['target'].address)
-    # Restore old config.json file
-    cb.update_config_json(n1, type)
+    # Restore bc_resources db and old config.json file
     cb.stop_relay()
+    os.remove(BC_RESOURCES_PATH)
+    os.rename(BC_RESOURCES_PATH+".old", BC_RESOURCES_PATH)
+    cb.update_config_json(n1, type)
 
 
 def tests():
@@ -430,4 +452,4 @@ if __name__ == "__main__":
     # Restoring firewall options
     ufw.ufw_restore_rules()
     ufw.ufw_disable()
-    cb.start_relay()
+    cb.start_relay(latest=True)
