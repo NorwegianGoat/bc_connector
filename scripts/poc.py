@@ -358,7 +358,8 @@ def _config_bridge_fakechain(dest: Node, type: ContractTypes):
     # Add pre-deployed bridge. This step is required because the bridge
     # version in cb-sol-cli is different and does not provide the
     # adminSetDepositNonce required for this attack
-    add_contract("bridge", BRIDGE_SET_NONCE, 45, int(time.time()))
+    # https://github.com/ChainSafe/chainbridge-solidity/issues/253
+    add_contract("bridge", BRIDGE_SET_NONCE, 45, int(time.time())+1)
     res_id = available_resources(n0.chain_id, available_contracts(
         n0.chain_id, ContractTypes.ERC20)['target'].id)
     # Register the resource with the same id as source
@@ -372,28 +373,28 @@ def bridge_deflection(dest: Node, type: ContractTypes):
     # so we backup the file to restore it after the test finishes
     shutil.copy(BC_RESOURCES_PATH, BC_RESOURCES_PATH + ".old")
     _config_bridge_fakechain(dest, type)
-    contracts = available_contracts(n2.chain_id, ContractTypes.ERC20)
+    contracts = available_contracts(dest.chain_id, ContractTypes.ERC20)
     # Set deposit nonce on bridge (fake chain) otherwise the dest chain sees that
-    # this deposit already exists
+    # this deposit already exists.
     with open('crosscoin/build/contracts/NewBridge.json') as f:
         abi = json.loads(f.read())['abi']
-    contract = n2.provider.eth.contract(
+    contract = dest.provider.eth.contract(
         address=contracts['bridge'].address, abi=abi)
-    t_dict = {"chainId": n2.chain_id,
-              "nonce": n2.provider.eth.get_transaction_count(acc.address, 'pending'),
-              "gasPrice": n2.provider.toWei(10, "gwei"),
+    t_dict = {"chainId": dest.chain_id,
+              "nonce": dest.provider.eth.get_transaction_count(acc.address, 'pending'),
+              "gasPrice": dest.provider.toWei(10, "gwei"),
               "gas": 1000000}
     tx = contract.functions.adminSetDepositNonce(
-        n0.chain_id, random.randint(100000, 999999)).buildTransaction(t_dict)
-    signed_tx = n2.provider.eth.account.sign_transaction(tx, acc.key)
-    tx_hash = n2.provider.eth.send_raw_transaction(
+        dest.chain_id, random.randint(1000, 9999)).buildTransaction(t_dict)
+    signed_tx = dest.provider.eth.account.sign_transaction(tx, acc.key)
+    tx_hash = dest.provider.eth.send_raw_transaction(
         signed_tx.rawTransaction)
     logging.info("adminSetDepositNonce tx_hash: " + tx_hash.hex())
     # Mint token on fake source (chain 2)
-    cb.add_minter(n2.node_endpoint, acc.key.hex(),
+    cb.add_minter(dest.node_endpoint, acc.key.hex(),
                   10000000, ContractTypes.ERC20, acc.address,
                   contracts['target'].address)
-    redeem_tokens(n2.provider, acc, n2.provider.toWei(
+    redeem_tokens(dest.provider, acc, dest.provider.toWei(
         1, "Ether"), ContractTypes.ERC20)
     # Balance on source before generating the event
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
@@ -401,17 +402,17 @@ def bridge_deflection(dest: Node, type: ContractTypes):
                                                 ContractTypes.ERC20)['target'].address)
     # Send the tokens to source from chain 2 (fakechain)
     cb.start_relay(latest=True)
-    simple_token_transfer(acc, 1, ContractTypes.ERC20, n2, n0, False)
+    simple_token_transfer(acc, 1, ContractTypes.ERC20, dest, n0, False)
     time.sleep(WAIT)
     # Balance after event transmission
     cb.balance(n0.node_endpoint, ContractTypes.ERC20,
                acc.address, available_contracts(n0.chain_id,
                                                 ContractTypes.ERC20)['target'].address)
     # Restore bc_resources db and old config.json file
-    cb.stop_relay()
     os.remove(BC_RESOURCES_PATH)
     os.rename(BC_RESOURCES_PATH+".old", BC_RESOURCES_PATH)
     cb.update_config_json(n1, type)
+    cb.stop_relay()
 
 
 def tests():
