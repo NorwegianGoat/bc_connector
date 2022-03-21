@@ -46,7 +46,7 @@ class CBWrapper():
         else:
             return False
 
-    def start_relay(self, latest:bool=False):
+    def start_relay(self, latest: bool = False):
         params = ['nohup', 'chainbridge', '--config',
                   os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '&']
         if latest:
@@ -56,10 +56,7 @@ class CBWrapper():
 
     def stop_relay(self):
         logging.info("Stopping chainbridge relay")
-        params = ['pgrep', 'chainbridge']
-        pid = subprocess.run(
-            params, capture_output=True).stdout.decode('UTF-8').strip()
-        params = ['kill', '-15', pid]
+        params = ['pgrep', 'chainbridge', "|", "xargs", "kill"]
         subprocess.run(params)
 
     def deploy(self, gateway: str, pkey: str, gas: int, contracts_to_deploy: List[ContractTypes],

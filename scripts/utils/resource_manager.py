@@ -21,6 +21,13 @@ def _parse_blob(lines: bytes, chain: int):
     return ret
 
 
+def add_contract(ctype: ContractTypes, address: str, chain_id: int, timestamp: int):
+    db = sqlite3.connect(BC_RESOURCES_PATH)
+    cursor = db.cursor()
+    cursor.execute(
+        '''INSERT INTO resources(contract,address,chain,timestamp) VALUES ('%s','%s',%i,%i)''' % (ctype, address, chain_id, timestamp))
+    db.commit()
+
 def save_contracts(lines: str, chain: int):
     contracts = _parse_blob(lines, chain)
     db = sqlite3.connect(BC_RESOURCES_PATH)
@@ -28,9 +35,7 @@ def save_contracts(lines: str, chain: int):
     cursor.execute(
         '''CREATE TABLE IF NOT EXISTS resources (id INTEGER PRIMARY KEY AUTOINCREMENT, contract TEXT, address TEXT, chain INTEGER, timestamp INTEGER)''')
     for contract in contracts:
-        cursor.execute(
-            '''INSERT INTO resources(contract,address,chain,timestamp) VALUES ('%s','%s',%i,%i)''' % (contract[0], contract[2], contract[4], contract[6]))
-    db.commit()
+        add_contract(contract[0], contract[2], contract[4], contract[6])
 
 
 def save_binding(resource_id: str, bridge: int, handler: int, target: int, chain: int):
@@ -79,6 +84,7 @@ def available_contracts(chain: int, type: ContractTypes):
 def available_resources(chain_id: int, target: int):
     db = sqlite3.connect(BC_RESOURCES_PATH)
     cursor = db.cursor()
-    res_id = cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i ORDER BY timestamp DESC LIMIT 1''' % (chain_id, target)).fetchone()[0]
+    res_id = cursor.execute('''SELECT resource_id FROM binding WHERE chain = %i AND target = %i ORDER BY timestamp DESC LIMIT 1''' % (
+        chain_id, target)).fetchone()[0]
     logging.info("Res id for target %i is %s" % (target, res_id))
     return res_id
