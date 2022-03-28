@@ -1,0 +1,56 @@
+title FakeLock
+
+control Relay
+actor Alice
+
+fontawesome f1c9 BadTokenHandler-C0
+fontawesome f1c9 Bridge-C0
+fontawesome f1c9 ERC-C0
+
+fontawesome f1c9 Bridge-C1
+fontawesome f1c9 TokenHandler-C1
+fontawesome f1c9 ERC-C1
+
+activate Alice
+Alice->BadTokenHandler-C0:approve(BadTokenHandler-C0, amount)
+activate BadTokenHandler-C0
+deactivateafter BadTokenHandler-C0
+Alice->>Bridge-C0:deposit(amount)
+deactivate Alice
+activate Bridge-C0
+Bridge-C0->BadTokenHandler-C0:deposit(user, amount)
+activate BadTokenHandler-C0
+BadTokenHandler-C0->ERC-C0:transferFrom(user, BadTokenHandler-C0, 0)
+activate ERC-C0
+deactivateafter ERC-C0
+deactivate BadTokenHandler-C0
+Bridge-C0-->>Bridge-C0:depositEvent(user, amount, nonce)
+deactivate Bridge-C0
+
+activate Relay
+loop
+Relay->>Bridge-C0: getEvents
+activate Bridge-C0
+Bridge-C0-->>Relay:
+deactivate Bridge-C0
+opt deposit events are present
+Relay->>Bridge-C0:voteProposal
+activate Bridge-C0
+Bridge-C0-->>Bridge-C0:proposalEvent(status, nonce)
+deactivate Bridge-C0
+end
+opt passed deposit proposals are present
+Relay->>Bridge-C1:transmitDeposit(user, amount)
+activate Bridge-C1
+
+Bridge-C1->TokenHandler-C1:deposit(user, amount)
+activate TokenHandler-C1
+TokenHandler-C1->ERC-C1:mint(user, amount)
+activate ERC-C1
+ERC-C1->ERC-C1:_mint(user, amount)
+deactivateafter ERC-C1
+deactivate TokenHandler-C1
+Bridge-C1-->>Bridge-C1:depositFinalizedEvent(user, amount)
+deactivate Bridge-C1
+end
+end

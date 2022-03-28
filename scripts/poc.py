@@ -290,12 +290,12 @@ def malicious_rollback():
                acc.address, contracts['target'].address)
 
 
-def concussion_attack():
-    # This attack is a concussion attack if a user convinces the admin bridge
+def corruption_attack():
+    # This attack is a corruption attack if a user convinces the admin bridge
     # to withdraw funds from the bridge for him. If the admin steals the funds
     # for himself, then is a stealing of user funds
     # https://github.com/ChainSafe/chainbridge-solidity/blob/master/contracts/Bridge.sol#L333
-    logging.info("Concussion attack test")
+    logging.info("Corruption attack test")
     # We generate a transfer so we have at least one token in ERC20Safe
     amount = n0.provider.toWei(1, 'ether')
     redeem_tokens(n0.provider, acc,
@@ -430,7 +430,7 @@ def tests():
     # fakelock_attack()
     # erc20_overflow()
     # malicious_rollback()
-    # concussion_attack()
+    # corruption_attack()
     chain_id_collision(n2, ContractTypes.ERC20)
     logging.info("Finished tests.")
 

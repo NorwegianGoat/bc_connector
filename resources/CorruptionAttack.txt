@@ -1,0 +1,25 @@
+title CorruptionAttack
+
+actor Trudy
+actor BridgeAdmin
+
+fontawesome f1c9 Bridge-C0
+fontawesome f1c9 TokenHandler-C0
+fontawesome f1c9 ERC-C0
+
+
+activate Trudy
+Trudy->BridgeAdmin:adminCorruption(amount, addr)
+deactivateafter Trudy
+activate BridgeAdmin
+BridgeAdmin->Bridge-C0:adminWithdraw(amount, addr)
+activate Bridge-C0
+deactivateafter BridgeAdmin
+
+Bridge-C0->TokenHandler-C0:withdraw(amount, addr)
+activate TokenHandler-C0
+TokenHandler-C0->ERC-C0:safeTransfer(amount, addr)
+activate ERC-C0
+deactivateafter ERC-C0
+deactivateafter TokenHandler-C0
+deactivateafter Bridge-C0

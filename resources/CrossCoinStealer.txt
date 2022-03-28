@@ -1,0 +1,56 @@
+title CrossCoinStealer
+
+control Relay
+actor Alice
+
+fontawesome f1c9 TokenHandler-C0
+fontawesome f1c9 Bridge-C0
+fontawesome f1c9 ERC-C0
+
+fontawesome f1c9 Bridge-C1
+fontawesome f1c9 TokenHandler-C1
+fontawesome f1c9 BadERC-C1
+
+activate Alice
+Alice->TokenHandler-C0:approve(TokenHandler-C0, amount)
+activate TokenHandler-C0
+deactivateafter TokenHandler-C0
+Alice->>Bridge-C0:deposit(amount)
+deactivate Alice
+activate Bridge-C0
+Bridge-C0->TokenHandler-C0:deposit(user, amount)
+activate TokenHandler-C0
+TokenHandler-C0->ERC-C0:transferFrom(user, TokenHandler-C0, amount)
+activate ERC-C0
+deactivateafter ERC-C0
+deactivate TokenHandler-C0
+Bridge-C0-->>Bridge-C0:depositEvent(user, amount, nonce)
+deactivate Bridge-C0
+
+activate Relay
+loop
+Relay->>Bridge-C0: getEvents
+activate Bridge-C0
+Bridge-C0-->>Relay:
+deactivate Bridge-C0
+opt deposit events are present
+Relay->>Bridge-C0:voteProposal
+activate Bridge-C0
+Bridge-C0-->>Bridge-C0:proposalEvent(status, nonce)
+deactivate Bridge-C0
+end
+opt passed deposit proposals are present
+Relay->>Bridge-C1:transmitDeposit(user, amount)
+activate Bridge-C1
+
+Bridge-C1->TokenHandler-C1:deposit(user, amount)
+activate TokenHandler-C1
+TokenHandler-C1->BadERC-C1:mint(user, amount)
+activate BadERC-C1
+BadERC-C1->BadERC-C1:_mint(user, Trudy)
+deactivateafter BadERC-C1
+deactivate TokenHandler-C1
+Bridge-C1-->>Bridge-C1:depositFinalizedEvent(user, amount)
+deactivate Bridge-C1
+end
+end
