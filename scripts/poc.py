@@ -223,8 +223,8 @@ def fakelock_attack():
     _restore_bridge(n0, ContractTypes.ERC20)
 
 
-def erc20_overflow(mint: bool = False):
-    logging.info("Starting erc20 overflow attack.")
+def token_drain(mint: bool = False):
+    logging.info("Starting token drain attack.")
     contracts = available_contracts(
         n0.chain_id, ContractTypes.ERC20)
     # Forging tokens on source (not the main chain)
@@ -428,7 +428,7 @@ def tests():
     # transfer_conn_lock_back()
     # transfer_crosscoin_stealer()
     # fakelock_attack()
-    # erc20_overflow()
+    # token_drain()
     # malicious_rollback()
     # corruption_attack()
     chain_id_collision(n2, ContractTypes.ERC20)
