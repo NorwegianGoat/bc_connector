@@ -1,3 +1,4 @@
+from eth_account import Account
 import requests
 import json
 import logging
@@ -6,7 +7,7 @@ CONTRACT_ABI = "https://ipfs.io/ipfs/QmaktJXwR8r5JQaCZaZ5KFrF44g8e4TsppgUZmgYxrK
 CONTRACT_ADDRESS = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
 NODE_ENDPOINT = "http://192.168.1.110:8545"
 
-def verify_bytecode(node_endpoint:str, abi_location:str, contract_address:str) -> bool:
+def verify_bytecode_remote_abi(node_endpoint:str, abi_location:str, contract_address:str) -> bool:
     data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
                     "params": [contract_address, "latest"], "id": 1})
     bytecode_supplied = json.loads(requests.get(abi_location).text)[
@@ -20,5 +21,8 @@ def verify_bytecode(node_endpoint:str, abi_location:str, contract_address:str) -
         logging.info("WARNING: Bytecode does not match!")
         return False
 
-if __name__=="__main__":
-    verify_bytecode(NODE_ENDPOINT, CONTRACT_ABI, CONTRACT_ADDRESS)
+def sign_message(account:Account, message:str):
+    signed_message = account.sign_message()
+    logging.info(signed_message)
+
+
