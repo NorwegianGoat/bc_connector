@@ -16,6 +16,7 @@ from utils.cc_redeem import redeem_tokens, token_of_owner_by_index
 from eth_account.account import Account
 import random
 import os
+from utils.contracts_utils import sign_message
 
 # Endpoints
 N0_C0_URL = "http://192.168.1.110:8545"
@@ -431,7 +432,8 @@ def tests():
     # token_drain()
     # malicious_rollback()
     # corruption_attack()
-    chain_id_collision(n2, ContractTypes.ERC20)
+    # chain_id_collision(n2, ContractTypes.ERC20)
+    sign_message(acc, "test")
     logging.info("Finished tests.")
 
 

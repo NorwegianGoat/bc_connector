@@ -1,5 +1,5 @@
-from typing import BinaryIO
 from web3 import HTTPProvider, Web3
+from eth_account import Account
 import requests
 import json
 import logging
@@ -9,8 +9,7 @@ CONTRACT_ABI = "https://ipfs.io/ipfs/QmaktJXwR8r5JQaCZaZ5KFrF44g8e4TsppgUZmgYxrK
 CONTRACT_ADDRESS = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
 NODE_ENDPOINT = "http://192.168.1.110:8545"
 
-
-def verify_bytecode(node_endpoint: str, abi_location: str, contract_address: str) -> bool:
+def verify_bytecode_remote_abi(node_endpoint:str, abi_location:str, contract_address:str) -> bool:
     data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
                        "params": [contract_address, "latest"], "id": 1})
     bytecode_supplied = json.loads(requests.get(abi_location).text)[
@@ -44,10 +43,15 @@ def proof_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str, 
         trie.set(Web3.toBytes(i),deposit_data)
     print(trie.get(Web3.toBytes(i)))
 
-
+def sign_message(account:Account, message:str):
+    signed_message = account.sign_message()
+    logging.info(signed_message)
+    
 if __name__ == "__main__":
     # verify_bytecode(NODE_ENDPOINT, CONTRACT_ABI, CONTRACT_ADDRESS)
     src_bridge_addr = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
     dst_bridge_addr = "0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38"
     proof_maker("http://192.168.1.110:8545",
                 "http://192.168.1.120:8545", src_bridge_addr, dst_bridge_addr)
+
+
