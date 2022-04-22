@@ -135,3 +135,4 @@ node_modules
 *.save
 *.db
 user.rules
+resources/contract_storage_tries/*
