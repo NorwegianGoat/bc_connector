@@ -3,13 +3,14 @@ from eth_account import Account
 import requests
 import json
 import logging
-from trie import BinaryTrie
+from merkletools import MerkleTools
 
 CONTRACT_ABI = "https://ipfs.io/ipfs/QmaktJXwR8r5JQaCZaZ5KFrF44g8e4TsppgUZmgYxrKNKL"
 CONTRACT_ADDRESS = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
 NODE_ENDPOINT = "http://192.168.1.110:8545"
 
-def verify_bytecode_remote_abi(node_endpoint:str, abi_location:str, contract_address:str) -> bool:
+
+def verify_bytecode_remote_abi(node_endpoint: str, abi_location: str, contract_address: str) -> bool:
     data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
                        "params": [contract_address, "latest"], "id": 1})
     bytecode_supplied = json.loads(requests.get(abi_location).text)[
@@ -30,28 +31,39 @@ def load_abi(abi_path: str):
     return abi
 
 
-def proof_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str, dest_bridge_addr: str):
+def trie_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str):
     source = Web3(HTTPProvider(source_endpoint))
     dest = Web3(HTTPProvider(dest_endpoint))
     abi = load_abi("crosscoin/build/contracts/Bridge.json")['abi']
     contract = source.eth.contract(abi=abi, address=src_bridge_addr)
     # Get the latest nonce used by source chain to dest chain
     latest_nonce = contract.functions._depositCounts(dest.eth.chainId).call()
-    trie = BinaryTrie({})
+    trie = MerkleTools()
+    # Get gets all the deposits records for this chainId up to the latest transfer
     for i in range(0, latest_nonce+1):
-        deposit_data = contract.functions._depositRecords(i, dest.eth.chainId).call()
-        trie.set(Web3.toBytes(i),deposit_data)
-    print(trie.get(Web3.toBytes(i)))
+        deposit_data = contract.functions._depositRecords(
+            i, dest.eth.chainId).call().hex()
+        trie.add_leaf(deposit_data)
+    # It creates the tree
+    trie.make_tree()
+    return trie
 
-def sign_message(account:Account, message:str):
+
+def proof_maker(trie: MerkleTools, proof_index: int):
+    path = trie.get_proof(proof_index)
+    return path, trie.get_leaf(proof_index), trie.get_merkle_root()
+
+
+def sign_message(account: Account, message: str):
     signed_message = account.sign_message()
     logging.info(signed_message)
-    
+
+
 if __name__ == "__main__":
     # verify_bytecode(NODE_ENDPOINT, CONTRACT_ABI, CONTRACT_ADDRESS)
     src_bridge_addr = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
     dst_bridge_addr = "0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38"
-    proof_maker("http://192.168.1.110:8545",
-                "http://192.168.1.120:8545", src_bridge_addr, dst_bridge_addr)
-
-
+    trie = trie_maker("http://192.168.1.110:8545",
+                      "http://192.168.1.120:8545", src_bridge_addr)
+    path, target, root = proof_maker(trie, 79)
+    print(trie.validate_proof(path, target, root))
