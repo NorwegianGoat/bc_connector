@@ -1,4 +1,4 @@
-title CrossCoinStealer
+title CrossCoin Theft Attack
 
 control Relay
 actor Alice
