@@ -25,7 +25,7 @@ class CBWrapper():
         if not self.chainbridge:
             print("Chainbridge relayer not installed")
         else:
-            if self.is_chainbridge_running():
+            if self.is_relayer_running():
                 logging.info("Bridge already running, it will not be started")
 
     def _basic_config(self, gateway: str, pkey: str, gas: int):
@@ -38,7 +38,7 @@ class CBWrapper():
         print(out.stdout.decode("UTF-8"))
         return out
 
-    def is_chainbridge_running(self):
+    def is_relayer_running(self):
         if self.chainbridge:
             params = ['pgrep', 'chainbridge']
             out = subprocess.run(params, capture_output=True)
@@ -46,11 +46,16 @@ class CBWrapper():
         else:
             return False
 
-    def start_relay(self, latest: bool = False):
+    def start_relay(self, latest: bool = False, start_block: int = None):
+        if latest and start_block:
+            raise ValueError("You can't specify both latest and from_block params.")
         params = ['nohup', 'chainbridge', '--config',
                   os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '&']
         if latest:
-            params.insert(-1, "--latest")
+            params.append(-1, "--latest")
+        if start_block:
+            params.append("--startBlock")
+            params.append(start_block)
         logging.info("Starting chainbridge relay")
         subprocess.Popen(params, cwd=os.path.realpath('..'))
 
@@ -147,7 +152,7 @@ class CBWrapper():
 
     def update_config_json(self, endpoint: Node, type):
         logging.info("Updating chainbridge conf.")
-        if self.is_chainbridge_running():
+        if self.is_relayer_running():
             self.stop_relay()
         chain_id = endpoint.chain_id
         with open(CONFIG_JSON_FILE, 'r+') as f:

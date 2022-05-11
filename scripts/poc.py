@@ -457,7 +457,7 @@ if __name__ == "__main__":
     ufw = UFW()
     ct = ConnTrack()
     ufw.ufw_enable()
-    if cb.is_chainbridge_running():
+    if cb.is_relayer_running():
         cb.stop_relay()
     tests()
     # Restoring firewall options

@@ -1,3 +1,4 @@
+from typing import List
 from web3 import HTTPProvider, Web3
 from eth_account import Account
 import requests
@@ -13,14 +14,19 @@ NODE_ENDPOINT = "http://192.168.1.110:8545"
 TRIES_BASEPATH = "resources/contract_storage_tries"
 
 
-def verify_bytecode_remote_abi(node_endpoint: str, abi_location: str, contract_address: str) -> bool:
-    data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
-                       "params": [contract_address, "latest"], "id": 1})
-    bytecode_supplied = json.loads(requests.get(abi_location).text)[
-        'deployedBytecode']
-    bytecode_chain = json.loads(requests.post(
-        url=node_endpoint, data=data).text)['result']
-    if bytecode_chain == bytecode_supplied:
+def verify_bytecode(node_endpoints: List[str], src_addrs: List[str], dst_addrs: List[str]) -> bool:
+    src_bytecode = []
+    dst_bytecode = []
+    for i in range(0, len(src_addrs)):
+        data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
+                           "params": [src_addrs[i], "latest"], "id": 1})
+        src_bytecode.append(json.loads(requests.post(
+            url=node_endpoints[0], data=data).text)['result'])
+        data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
+                           "params": [dst_addrs[i], "latest"], "id": 1})
+        dst_bytecode.append(json.loads(requests.post(
+            url=node_endpoints[1], data=data).text)['result'])
+    if src_bytecode == dst_bytecode:
         logging.info("Bytecode matches")
         return True
     else:
@@ -51,7 +57,7 @@ def trie_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str):
         trie.add_leaf(deposit_data)
     # It creates the tree
     trie.make_tree()
-    with open(os.path.join(TRIES_BASEPATH,str(source.eth.chain_id)+".json"), mode="w") as f:
+    with open(os.path.join(TRIES_BASEPATH, str(source.eth.chain_id)+".json"), mode="w") as f:
         json.dump(dict, fp=f)
     return trie
 
@@ -64,7 +70,7 @@ def proof_maker(trie: MerkleTools, proof_index: int):
 def proof_validator(source_chain_id, path, target, root):
     # Restore latest trie
     dict = {}
-    with open(os.path.join(TRIES_BASEPATH,str(source_chain_id)+".json"), mode="r") as f:
+    with open(os.path.join(TRIES_BASEPATH, str(source_chain_id)+".json"), mode="r") as f:
         dict = json.load(fp=f)
     for key, value in dict.items():
         trie = MerkleTools()
