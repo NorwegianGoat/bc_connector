@@ -40,44 +40,34 @@ def load_abi(abi_path: str):
     return abi
 
 
-def trie_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str):
+def trie_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str, latest_nonce: int = None, save_on_disk: bool = False):
     source = Web3(HTTPProvider(source_endpoint))
     dest = Web3(HTTPProvider(dest_endpoint))
     abi = load_abi("crosscoin/build/contracts/Bridge.json")['abi']
     contract = source.eth.contract(abi=abi, address=src_bridge_addr)
-    # Get the latest nonce used by source chain to dest chain
-    latest_nonce = contract.functions._depositCounts(dest.eth.chainId).call()
+    if not latest_nonce:
+        # Get the latest nonce used by source chain to dest chain
+        latest_nonce = contract.functions._depositCounts(
+            dest.eth.chainId).call()
     trie = MerkleTools()
-    dict = {}
+    deposits = []
     # Get gets all the deposits records for this chainId up to the latest transfer
     for i in range(0, latest_nonce+1):
         deposit_data = contract.functions._depositRecords(
             i, dest.eth.chainId).call().hex()
-        dict[i] = deposit_data
-        trie.add_leaf(deposit_data)
+        deposits.append({"nonce": i, "data": deposit_data})
+        trie.add_leaf(deposit_data, True)
     # It creates the tree
     trie.make_tree()
-    with open(os.path.join(TRIES_BASEPATH, str(source.eth.chain_id)+".json"), mode="w") as f:
-        json.dump(dict, fp=f)
+    if save_on_disk:
+        with open(os.path.join(TRIES_BASEPATH, str(source.eth.chain_id)+".json"), mode="w") as f:
+            json.dump({"deposits": deposits}, fp=f)
     return trie
 
 
 def proof_maker(trie: MerkleTools, proof_index: int):
     path = trie.get_proof(proof_index)
     return path, trie.get_leaf(proof_index), trie.get_merkle_root()
-
-
-def proof_validator(source_chain_id, path, target, root):
-    # Restore latest trie
-    dict = {}
-    with open(os.path.join(TRIES_BASEPATH, str(source_chain_id)+".json"), mode="r") as f:
-        dict = json.load(fp=f)
-    for key, value in dict.items():
-        trie = MerkleTools()
-        trie.add_leaf(value)
-    # Make the trie and get response
-    trie.make_tree()
-    return trie.validate_proof(path, target, root)
 
 
 def sign_message(account: Account, message: str):

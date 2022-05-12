@@ -1,13 +1,13 @@
-from http import server
 from typing import List
 from xmlrpc.server import SimpleXMLRPCServer
 from utils.cb_wrapper import CBWrapper
 from utils.resource_manager import available_contracts
-from utils.contracts_utils import verify_bytecode, proof_validator, trie_maker, TRIES_BASEPATH
+from utils.contracts_utils import proof_maker, verify_bytecode, trie_maker, TRIES_BASEPATH
 from web3 import Web3, HTTPProvider
 import logging
 import os
 import json
+from merkletools import MerkleTools
 
 
 class RelayerManager():
@@ -35,15 +35,26 @@ class RelayerManager():
         # If the path exists we know this chain, else is the first time we see it
         if os.path.exists(trie_path):
             with open(trie_path) as f:
-                trie = json.dumps(f.readlines())
-                # TODO: check the last item
-            if not proof_validator():
+                saved_trie = json.load(fp=f)
+            trie = MerkleTools()
+            for deposit in saved_trie["deposits"]:
+                trie.add_leaf(deposit["data"], True)
+            trie.make_tree()
+            # TODO: Compare our root with the one saved on our chain
+            #trie.get_merkle_root()
+            # Read the storage on source chain and generate a proof for the last
+            # deposit then check the proof against our saved trie
+            latest_nonce_saved = int(saved_trie["deposits"][-1]['nonce'])
+            user_trie = trie_maker(
+                src_endpoint, self.dst_endpoint.provider.endpoint_uri, src_addrs[0], latest_nonce_saved)
+            proof = proof_maker(user_trie, latest_nonce_saved)
+            if not trie.validate_proof(proof[0], proof[1], trie.get_merkle_root()):
                 return False
         else:
-            # We create the new trie
-            trie_maker(
-                src_endpoint, self.dst_endpoint.provider.endpoint_uri, src_addrs[0])
             # TODO: Write new endpoints in db
+            pass
+        trie = trie_maker(
+            src_endpoint, self.dst_endpoint.provider.endpoint_uri, src_addrs[0], save_on_disk=True)
         # TODO: Commit new root on chain
         return True
 
