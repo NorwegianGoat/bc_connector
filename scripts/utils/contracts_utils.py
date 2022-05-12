@@ -83,13 +83,3 @@ def proof_validator(source_chain_id, path, target, root):
 def sign_message(account: Account, message: str):
     signed_message = account.sign_message()
     logging.info(signed_message)
-
-
-if __name__ == "__main__":
-    # verify_bytecode(NODE_ENDPOINT, CONTRACT_ABI, CONTRACT_ADDRESS)
-    src_bridge_addr = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
-    dst_bridge_addr = "0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38"
-    trie = trie_maker("http://192.168.1.110:8545",
-                      "http://192.168.1.120:8545", src_bridge_addr)
-    path, target, root = proof_maker(trie, 79)
-    print(proof_validator(100, path, target, root))
