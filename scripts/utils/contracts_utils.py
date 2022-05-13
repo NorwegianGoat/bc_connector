@@ -40,25 +40,28 @@ def load_abi(abi_path: str):
     return abi
 
 
-def trie_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str):
+def trie_maker(source_endpoint: str, dest_endpoint: str, src_bridge_addr: str, latest_nonce: int = None, save_on_disk: bool = False):
     source = Web3(HTTPProvider(source_endpoint))
     dest = Web3(HTTPProvider(dest_endpoint))
     abi = load_abi("crosscoin/build/contracts/Bridge.json")['abi']
     contract = source.eth.contract(abi=abi, address=src_bridge_addr)
-    # Get the latest nonce used by source chain to dest chain
-    latest_nonce = contract.functions._depositCounts(dest.eth.chainId).call()
+    if not latest_nonce:
+        # Get the latest nonce used by source chain to dest chain
+        latest_nonce = contract.functions._depositCounts(
+            dest.eth.chainId).call()
     trie = MerkleTools()
-    dict = {}
+    deposits = []
     # Get gets all the deposits records for this chainId up to the latest transfer
     for i in range(0, latest_nonce+1):
         deposit_data = contract.functions._depositRecords(
             i, dest.eth.chainId).call().hex()
-        dict[i] = deposit_data
-        trie.add_leaf(deposit_data)
+        deposits.append({"nonce": i, "data": deposit_data})
+        trie.add_leaf(deposit_data, True)
     # It creates the tree
     trie.make_tree()
-    with open(os.path.join(TRIES_BASEPATH, str(source.eth.chain_id)+".json"), mode="w") as f:
-        json.dump(dict, fp=f)
+    if save_on_disk:
+        with open(os.path.join(TRIES_BASEPATH, str(source.eth.chain_id)+".json"), mode="w") as f:
+            json.dump({"deposits": deposits}, fp=f)
     return trie
 
 
@@ -67,29 +70,6 @@ def proof_maker(trie: MerkleTools, proof_index: int):
     return path, trie.get_leaf(proof_index), trie.get_merkle_root()
 
 
-def proof_validator(source_chain_id, path, target, root):
-    # Restore latest trie
-    dict = {}
-    with open(os.path.join(TRIES_BASEPATH, str(source_chain_id)+".json"), mode="r") as f:
-        dict = json.load(fp=f)
-    for key, value in dict.items():
-        trie = MerkleTools()
-        trie.add_leaf(value)
-    # Make the trie and get response
-    trie.make_tree()
-    return trie.validate_proof(path, target, root)
-
-
 def sign_message(account: Account, message: str):
     signed_message = account.sign_message()
     logging.info(signed_message)
-
-
-if __name__ == "__main__":
-    # verify_bytecode(NODE_ENDPOINT, CONTRACT_ABI, CONTRACT_ADDRESS)
-    src_bridge_addr = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
-    dst_bridge_addr = "0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38"
-    trie = trie_maker("http://192.168.1.110:8545",
-                      "http://192.168.1.120:8545", src_bridge_addr)
-    path, target, root = proof_maker(trie, 79)
-    print(proof_validator(100, path, target, root))

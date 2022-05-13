@@ -48,11 +48,12 @@ class CBWrapper():
 
     def start_relay(self, latest: bool = False, start_block: int = None):
         if latest and start_block:
-            raise ValueError("You can't specify both latest and from_block params.")
+            raise ValueError(
+                "You can't specify both latest and from_block params.")
         params = ['nohup', 'chainbridge', '--config',
                   os.path.abspath(CONFIG_JSON_FILE), '--verbosity', 'trace', '&']
         if latest:
-            params.append(-1, "--latest")
+            params.append("--latest")
         if start_block:
             params.append("--startBlock")
             params.append(start_block)
