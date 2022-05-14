@@ -1,14 +1,13 @@
-from curses.ascii import HT
-from email.policy import HTTP
-from typing import List
+from model.contract import ContractTypes
 from xmlrpc.server import SimpleXMLRPCServer
 from utils.cb_wrapper import CBWrapper
-from utils.resource_manager import available_contracts
+from utils.resource_manager import available_contracts, add_contract
 from utils.contracts_utils import proof_maker, verify_bytecode, trie_maker, TRIES_BASEPATH, load_abi
 from web3 import Web3, HTTPProvider
 import logging
 import os
 import json
+import time
 from merkletools import MerkleTools
 
 SECRET_KEY_PATH = "resources/.secret"
@@ -24,6 +23,11 @@ class RelayerManager():
         self.dst_endpoint = Web3(HTTPProvider(dst_endpoint))
         self.src_addrs = None
         self.dst_addrs = None
+        # Root board writer admin account
+        with open(SECRET_KEY_PATH) as f:
+            key = f.readline().strip()
+        self.relayer_admin_account = self.dst_endpoint.eth.account.from_key(
+            key)
         # XML-RPC config
         self.address = address
         self.port = port
@@ -72,8 +76,19 @@ class RelayerManager():
         board_abi = load_abi(os.path.join(CONTRACT_ABIS, "RootBoard.json"))
         board = self.dst_endpoint.eth.contract(
             abi=board_abi, address=LOCAL_BOARD)
-        board.functions.setLatestRoot(
-            nonce, root).call()
+        # Fire redeem transaction
+        t_dict = {"chainId": self.dst_endpoint.eth.chain_id,
+                  "nonce": self.dst_endpoint.eth.get_transaction_count(self.relayer_admin_account.address, 'pending'),
+                  "gasPrice": self.dst_endpoint.toWei(10, "gwei"),
+                  "gas": 1000000}
+        tx = board.functions.setLatestRoot(self.src_endpoint.eth.chain_id,
+                                           nonce, root).buildTransaction(t_dict)
+        signed_tx = self.dst_endpoint.eth.account.sign_transaction(
+            tx, self.relayer_admin_account.key)
+        tx_hash = self.dst_endpoint.eth.send_raw_transaction(
+            signed_tx.rawTransaction)
+        receipt = self.dst_endpoint.eth.wait_for_transaction_receipt(tx_hash)
+        logging.info("root update tx_receipt: " + str(receipt))
 
     def _storage_integrity(self):
         trie_path = os.path.join(TRIES_BASEPATH, str(
@@ -86,10 +101,13 @@ class RelayerManager():
             for deposit in saved_trie["deposits"]:
                 trie.add_leaf(deposit["data"], True)
             trie.make_tree()
-            if trie.get_merkle_root() == self._get_root():
-                logging.info("Our root does not match with the one saved on chain. " +
-                             trie.get_merkle_root + " vs. " + self._get_root())
+            chain_root = self._get_root()
+            if trie.get_merkle_root() == chain_root[1]:
+                logging.info("Our root matches match with the one saved on chain. " +
+                             trie.get_merkle_root() + " vs. " + str(chain_root))
             else:
+                logging.info("Our root does not match with the one saved on chain. " +
+                             trie.get_merkle_root() + " vs. " + str(chain_root))
                 return False
             # Read the storage on source chain and generate a proof for the last
             # deposit then check the proof against our saved trie
@@ -97,14 +115,24 @@ class RelayerManager():
             user_trie = trie_maker(
                 self.src_endpoint, self.dst_endpoint, self.src_addrs[0], latest_nonce_saved)
             proof = proof_maker(user_trie, latest_nonce_saved)
-            if not trie.validate_proof(proof[0], proof[1], trie.get_merkle_root()):
+            if trie.validate_proof(proof[0], proof[1], trie.get_merkle_root()):
+                logging.info("Proof is compatible!")
+            else:
+                logging.info("The proof is not compatible with our root!")
                 return False
         else:
-            # TODO: Write new endpoints in db
-            pass
+            # This is the first time we interact with this chain, we add data to the db
+            # for logging purposes
+            add_contract(ContractTypes.BRIDGE.value,
+                         self.src_addrs[0], self.src_endpoint.eth.chain_id, int(time.time()))
+            add_contract(ContractTypes.ERC20_HANDLER.value,
+                         self.src_addrs[1], self.src_endpoint.eth.chain_id, int(time.time()))
+            add_contract(ContractTypes.ERC20.value,
+                         self.src_addrs[2], self.src_endpoint.eth.chain_id, int(time.time()))
         # Write the updated root on chain
         trie = trie_maker(
             self.src_endpoint, self.dst_endpoint, self.src_addrs[0], save_on_disk=True)
+        # TODO: check salvataggio
         with open(trie_path) as f:
             saved_trie = json.load(fp=f)
         self._write_root(saved_trie["deposits"][-1]
