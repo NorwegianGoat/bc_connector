@@ -13,7 +13,7 @@ from merkletools import MerkleTools
 SECRET_KEY_PATH = "resources/.secret"
 CONTRACT_ABIS = "crosscoin/build/contracts"
 # This is the address of the local root board (the contract in which the root state is committed)
-LOCAL_BOARD = "0x054108eE0dc15Ef50b632734eE01174E2cfb9BbF"
+LOCAL_BOARD = "0x7834bCF13119474873E1BFA4ea588A8AfD79a69F"
 
 
 class RelayerManager():
@@ -89,6 +89,7 @@ class RelayerManager():
             signed_tx.rawTransaction)
         receipt = self.dst_endpoint.eth.wait_for_transaction_receipt(tx_hash)
         logging.info("root update tx_receipt: " + str(receipt))
+        return receipt['status']
 
     def _storage_integrity(self):
         trie_path = os.path.join(TRIES_BASEPATH, str(
@@ -132,19 +133,22 @@ class RelayerManager():
         # Write the updated root on chain
         trie = trie_maker(
             self.src_endpoint, self.dst_endpoint, self.src_addrs[0], save_on_disk=True)
-        # TODO: check salvataggio
         with open(trie_path) as f:
             saved_trie = json.load(fp=f)
-        self._write_root(saved_trie["deposits"][-1]
+        result = self._write_root(saved_trie["deposits"][-1]
                          ["nonce"], trie.get_merkle_root())
-        return True
+        if not result:
+            logging.info("Unable to write root in smart contract. Same nonce.")
+            return False
+        else:
+            return True
 
     def remap_relayer(self, src_endpoint: str, from_block: int, src_bridge_addr: str, res_id: str):
         self.src_endpoint = Web3(HTTPProvider(src_endpoint))
-        logging.info("User asked for relayer remapping: %s, %i, %i" %
+        logging.info("User asked for remapping the relayer: %s, %i, %i" %
                      (src_endpoint, self.src_endpoint.eth.chain_id, from_block))
         self._get_addrs(src_bridge_addr, res_id)
-        # Check conditions for relayer remapping
+        # Check conditions for remapping the relayer
         if self._bytecode_matches() and self._storage_integrity():
             if self.relayer.is_relayer_running():
                 self.relayer.stop_relay()
@@ -153,7 +157,7 @@ class RelayerManager():
                     "extra": "We are parsing your events."}
         else:
             return {"response": "NOK",
-                    "extra": "Your contract bytecode is different or smart contract storage has different transactions."}
+                    "extra": "Errors in bytecode verification or in storage probing phase."}
 
 
 if __name__ == '__main__':
