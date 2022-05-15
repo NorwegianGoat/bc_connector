@@ -14,6 +14,8 @@ SECRET_KEY_PATH = "resources/.secret"
 CONTRACT_ABIS = "crosscoin/build/contracts"
 # This is the address of the local root board (the contract in which the root state is committed)
 LOCAL_BOARD = "0x7834bCF13119474873E1BFA4ea588A8AfD79a69F"
+NODE_IP = "192.168.1.110"
+NODE_ENDPOINT = "http://"+NODE_IP+":8545"
 
 
 class RelayerManager():
@@ -136,7 +138,7 @@ class RelayerManager():
         with open(trie_path) as f:
             saved_trie = json.load(fp=f)
         result = self._write_root(saved_trie["deposits"][-1]
-                         ["nonce"], trie.get_merkle_root())
+                                  ["nonce"], trie.get_merkle_root())
         if not result:
             logging.info("Unable to write root in smart contract. Same nonce.")
             return False
@@ -162,4 +164,4 @@ class RelayerManager():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    srv = RelayerManager("192.168.1.110", 23456, "http://192.168.1.110:8545")
+    srv = RelayerManager(NODE_IP, 23456, NODE_ENDPOINT)
