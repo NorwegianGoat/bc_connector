@@ -3,6 +3,14 @@ from web3 import HTTPProvider, Web3
 from web3.middleware.geth_poa import geth_poa_middleware
 from utils.contracts_utils import load_abi
 import logging
+from enum import Enum
+
+
+class Vote(Enum):
+    AGAINST = 0,
+    FOR = 1,
+    ABSTAIN = 2
+
 
 SECRET_KEY_PATH = "resources/.secret"
 BRIDGE_ADDR = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
@@ -37,14 +45,16 @@ class BridgeGovernance():
             signed_tx.rawTransaction)
         receipt = self.node_endpoint.eth.wait_for_transaction_receipt(tx_hash)
         logging.info("root update tx_receipt: " + str(receipt))
-        return receipt['status']
+        return receipt
 
     def join_governance(self, address: str, amount: int):
         function = self.bridge_governance.functions.join(address)
         logging.info(self._call_function(function, amount))
 
-    def vote_proposal():
-        pass
+    def vote_proposal(self, proposal_id: int, vote: Vote):
+        function = self.bridge_governance.functions.castVote(
+            proposal_id, vote.value)
+        logging.info(self._call_function(function))
 
     # This command has some effect only if the function is called with the admin account
     def drop_priviledges(self):
@@ -58,7 +68,14 @@ class BridgeGovernance():
         logging.info("calldata is:" + str(calldata))
         function = self.bridge_governance.functions.propose(
             [self.bridge.address], [0], [calldata], description)
-        logging.info(self._call_function(function))
+        receipt = self._call_function(function)
+        if receipt["status"] == 1:
+            event = bridge.bridge_governance.events.ProposalCreated.getLogs(
+                fromBlock=receipt["blockNumber"])
+            logging.info("Your proposal id is: " +
+                         str(event[0]["args"]["proposalId"]))
+        else:
+            logging.info("Status is 0, has this proposal been issued before?")
 
 
 if __name__ == "__main__":
@@ -68,3 +85,4 @@ if __name__ == "__main__":
         node, BRIDGE_GOVERNANCE_ADDR, BRIDGE_ADDR)
     bridge.remap_proposal(
         [BRIDGE_ADDR, "0xd8de56dd1db472be57d5840cb8d8d5961c69601e8d8d8a0c97a57c9ae8cb0f0f", BRIDGE_ADDR], "test")
+    #bridge.vote_proposal(1, Vote.FOR)
