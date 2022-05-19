@@ -1,11 +1,11 @@
 pragma solidity >=0.8;
 
 // import "../node_modules/chainbridge-solidity/contracts/Bridge.sol";
-import "../node_modules/@openzeppelin/contracts/governance/Governor.sol";
+// import "../node_modules/@openzeppelin/contracts/governance/Governor.sol";
 import "../node_modules/@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Context.sol";
 
-contract BridgeGovernance is Context, Governor, GovernorCountingSimple {
+contract BridgeGovernance is Context, GovernorCountingSimple {
     uint256 private quorumPercentage;
     uint256 private collateral;
     uint256 private nPartecipants = 0;
@@ -19,7 +19,7 @@ contract BridgeGovernance is Context, Governor, GovernorCountingSimple {
     }
 
     constructor(uint256 _quorum, uint256 _collateral)
-        Governor("BridgeGovernance")
+        Governor("BridgeGovernance") payable
     {
         quorumPercentage = _quorum;
         collateral = _collateral;
