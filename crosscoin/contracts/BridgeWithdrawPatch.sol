@@ -26,14 +26,13 @@ contract BridgeWithdrawPatch is Bridge, Context {
         bytes calldata data
     ) external payable override whenNotPaused {
         uint256 amount = abi.decode(data, (uint256));
+        super.deposit(destinationDomainID, resourceID, data);
         // Saves deposit data
         uint64 depositNonce = _depositCounts[destinationDomainID];
-        depositHistory[destinationDomainID][depositNonce + 1] = Deposit(
+        depositHistory[destinationDomainID][depositNonce] = Deposit(
             amount,
             _msgSender()
         );
-
-        super.deposit(destinationDomainID, resourceID, data);
     }
 
     function adminWithdraw(
@@ -59,7 +58,7 @@ contract BridgeWithdrawPatch is Bridge, Context {
             amount == depositData.amount,
             "The refund amount has to be the same as the deposited one."
         );
-        
+
         super.adminWithdraw(handlerAddress, data);
     }
 }
