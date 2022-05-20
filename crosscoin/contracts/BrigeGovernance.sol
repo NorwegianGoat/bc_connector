@@ -1,7 +1,5 @@
 pragma solidity >=0.8;
 
-// import "../node_modules/chainbridge-solidity/contracts/Bridge.sol";
-// import "../node_modules/@openzeppelin/contracts/governance/Governor.sol";
 import "../node_modules/@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Context.sol";
 
