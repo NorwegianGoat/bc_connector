@@ -105,12 +105,39 @@ class BridgeGovernance():
             fn_name="adminSetResource", args=resource_addresses)
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
+    def add_relayer_proposal(self, relayer_address:str, description):
+        calldata = self.bridge.encodeABI(
+            fn_name="adminAddRelayer", args=relayer_address)
+        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+
+    def rm_relayer_proposal(self, relayer_address:str, description):
+        calldata = self.bridge.encodeABI(
+            fn_name="adminRemoveRelayer", args=relayer_address)
+        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+
+    def change_relayer_threshold_proposal(self, relayer_threshold:int, description:str):
+        calldata = self.bridge.encodeABI(
+            fn_name="adminRelayerThreshold", args=relayer_threshold)
+        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+
+    def pause_bridge_proposal(self, description):
+        calldata = self.bridge.encodeABI(
+            fn_name="adminPauseTransfers")
+        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+
+    def unpause_bridge_proposal(self, description):
+        calldata = self.bridge.encodeABI(
+            fn_name="adminUnpauseTransfers")
+        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     node = Web3(HTTPProvider("http://192.168.1.110:8545"))
     bridge = BridgeGovernance(
         node, BRIDGE_GOVERNANCE_ADDR, BRIDGE_ADDR)
+    ''' 
+    # Tests
     # Handler, resource id, token
     proposal_id = bridge.remap_proposal(
         ["0xCC08eac119e25f6E365C25d61eA60bC8e74B681e", "0xd8de56dd1db472be57d5840cb8d8d5961c69601e8d8d8a0c97a57c9ae8cb0f0f",
@@ -120,3 +147,4 @@ if __name__ == "__main__":
     bridge.drop_priviledges()
     time.sleep(20)
     bridge.execute_proposal(proposal_id)
+    '''
