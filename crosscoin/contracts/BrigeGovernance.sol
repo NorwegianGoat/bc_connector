@@ -66,7 +66,8 @@ contract BridgeGovernance is Context, GovernorCountingSimple {
     }
 
     function votingPeriod() public pure override returns (uint256) {
-        return 46027; //one week
+        return 10;
+        //return 46027; //one week
     }
 
     /**
@@ -93,7 +94,7 @@ contract BridgeGovernance is Context, GovernorCountingSimple {
         onlyPartecipant
         returns (uint256)
     {
-        super.castVote(proposalId, support);
+        return super.castVote(proposalId, support);
     }
 
     function castVoteWithReason(
@@ -101,7 +102,7 @@ contract BridgeGovernance is Context, GovernorCountingSimple {
         uint8 support,
         string calldata reason
     ) public virtual override onlyPartecipant returns (uint256) {
-        super.castVoteWithReason(proposalId, support, reason);
+        return super.castVoteWithReason(proposalId, support, reason);
     }
 
     function castVoteBySig(
@@ -111,6 +112,6 @@ contract BridgeGovernance is Context, GovernorCountingSimple {
         bytes32 r,
         bytes32 s
     ) public virtual override onlyPartecipant returns (uint256) {
-        super.castVoteBySig(proposalId, support, v, r, s);
+        return super.castVoteBySig(proposalId, support, v, r, s);
     }
 }
