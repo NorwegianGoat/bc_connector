@@ -25,9 +25,9 @@ contract BridgeWithdrawPatch is Context, Bridge {
         bytes32 resourceID,
         bytes calldata data
     ) external payable override whenNotPaused {
-        uint256 amount = abi.decode(data, (uint256));
         super.deposit(destinationDomainID, resourceID, data);
         // Saves deposit data
+        uint256 amount = abi.decode(data, (uint256));
         uint64 depositNonce = _depositCounts[destinationDomainID];
         depositHistory[destinationDomainID][depositNonce] = DepositItem(
             amount,
