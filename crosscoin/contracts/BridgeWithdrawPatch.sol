@@ -3,14 +3,14 @@ pragma solidity >=0.8;
 import "../node_modules/chainbridge-solidity/contracts/Bridge.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Context.sol";
 
-contract BridgeWithdrawPatch is Bridge, Context {
-    struct Deposit {
+contract BridgeWithdrawPatch is Context, Bridge {
+    struct DepositItem {
         uint256 amount;
         address sender;
     }
 
     // ChainId -> nonce -> data
-    mapping(uint256 => mapping(uint256 => Deposit)) depositHistory;
+    mapping(uint256 => mapping(uint256 => DepositItem)) depositHistory;
 
     constructor(
         uint8 domainID,
@@ -25,15 +25,14 @@ contract BridgeWithdrawPatch is Bridge, Context {
         bytes32 resourceID,
         bytes calldata data
     ) external payable override whenNotPaused {
-        uint256 amount = abi.decode(data, (uint256));
+        super.deposit(destinationDomainID, resourceID, data);
         // Saves deposit data
+        uint256 amount = abi.decode(data, (uint256));
         uint64 depositNonce = _depositCounts[destinationDomainID];
-        depositHistory[destinationDomainID][depositNonce] = Deposit(
+        depositHistory[destinationDomainID][depositNonce] = DepositItem(
             amount,
             _msgSender()
         );
-
-        super.deposit(destinationDomainID, resourceID, data);
     }
 
     function adminWithdraw(
@@ -45,11 +44,11 @@ contract BridgeWithdrawPatch is Bridge, Context {
         address token;
         address recipient;
         uint256 amount;
-        (tokenAddress, recipient, amount) = abi.decode(
+        (token, recipient, amount) = abi.decode(
             data,
             (address, address, uint256)
         );
-        Deposit depositData = depositHistory[chainId][depositNonce];
+        DepositItem memory depositData = depositHistory[chainId][depositNonce];
         // Checks if the given data matches with the one saved for the deposit
         require(
             recipient == depositData.sender,
@@ -59,7 +58,7 @@ contract BridgeWithdrawPatch is Bridge, Context {
             amount == depositData.amount,
             "The refund amount has to be the same as the deposited one."
         );
-        
+
         super.adminWithdraw(handlerAddress, data);
     }
 }
