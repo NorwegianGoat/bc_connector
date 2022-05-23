@@ -40,7 +40,7 @@ contract BridgeWithdrawPatch is Context, Bridge {
         uint64 depositNonce,
         address handlerAddress,
         bytes memory data
-    ) external override onlyAdmin {
+    ) external onlyAdmin {
         address token;
         address recipient;
         uint256 amount;
@@ -59,6 +59,6 @@ contract BridgeWithdrawPatch is Context, Bridge {
             "The refund amount has to be the same as the deposited one."
         );
 
-        super.adminWithdraw(handlerAddress, data);
+        _adminWithdraw(handlerAddress, data);
     }
 }
