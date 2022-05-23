@@ -28,7 +28,7 @@ contract BridgeWithdrawPatch is Bridge, Context {
         uint256 amount = abi.decode(data, (uint256));
         // Saves deposit data
         uint64 depositNonce = _depositCounts[destinationDomainID];
-        depositHistory[destinationDomainID][depositNonce + 1] = Deposit(
+        depositHistory[destinationDomainID][depositNonce] = Deposit(
             amount,
             _msgSender()
         );
