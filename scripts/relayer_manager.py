@@ -64,8 +64,8 @@ class RelayerManager():
             "Found these addresses for destination: " + str(self.dst_addrs))
 
     def _bytecode_matches(self):
-        # return verify_bytecode([self.src_endpoint.provider.endpoint_uri, self.dst_endpoint.provider.endpoint_uri], self.src_addrs, self.dst_addrs)
-        return True
+        return verify_bytecode([self.src_endpoint.provider.endpoint_uri, self.dst_endpoint.provider.endpoint_uri], self.src_addrs, self.dst_addrs)
+        # return True # Just for test puposes
 
     def _get_root(self):
         board_abi = load_abi(os.path.join(CONTRACT_ABIS, "RootBoard.json"))
@@ -123,15 +123,13 @@ class RelayerManager():
             else:
                 logging.info("The proof is not compatible with our root!")
                 return False
-        else:
-            # This is the first time we interact with this chain, we add data to the db
-            # for logging purposes
-            add_contract(ContractTypes.BRIDGE.value,
-                         self.src_addrs[0], self.src_endpoint.eth.chain_id, int(time.time()))
-            add_contract(ContractTypes.ERC20_HANDLER.value,
-                         self.src_addrs[1], self.src_endpoint.eth.chain_id, int(time.time()))
-            add_contract(ContractTypes.ERC20.value,
-                         self.src_addrs[2], self.src_endpoint.eth.chain_id, int(time.time()))
+        # We log the contract used
+        add_contract(ContractTypes.BRIDGE.value,
+                        self.src_addrs[0], self.src_endpoint.eth.chain_id, int(time.time()))
+        add_contract(ContractTypes.ERC20_HANDLER.value,
+                        self.src_addrs[1], self.src_endpoint.eth.chain_id, int(time.time()))
+        add_contract(ContractTypes.ERC20.value,
+                        self.src_addrs[2], self.src_endpoint.eth.chain_id, int(time.time()))
         # Write the updated root on chain
         trie = trie_maker(
             self.src_endpoint, self.dst_endpoint, self.src_addrs[0], save_on_disk=True)
@@ -154,6 +152,7 @@ class RelayerManager():
         if self._bytecode_matches() and self._storage_integrity():
             if self.relayer.is_relayer_running():
                 self.relayer.stop_relay()
+            self.relayer.update_config_json(self.dst_endpoint, ContractTypes.ERC20)
             self.relayer.start_relay(latest=from_block)
             return {"response": "OK",
                     "extra": "We are parsing your events."}
