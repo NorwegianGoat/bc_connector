@@ -4,11 +4,6 @@ import "../node_modules/chainbridge-solidity/contracts/Bridge.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Context.sol";
 
 contract BridgeWithdrawPatch is Context, Bridge {
-    struct DepositItem {
-        uint256 amount;
-        address sender;
-    }
-
     // nonce -> chainId -> data
     mapping(uint64 => mapping(uint8 => bytes)) public _depositRecords;
 
