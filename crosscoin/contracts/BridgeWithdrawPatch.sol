@@ -10,7 +10,7 @@ contract BridgeWithdrawPatch is Context, Bridge {
     }
 
     // ChainId -> nonce -> data
-    mapping(uint256 => mapping(uint256 => DepositItem)) depositHistory;
+    mapping(uint256 => mapping(uint256 => DepositItem)) private depositHistory;
 
     constructor(
         uint8 domainID,
