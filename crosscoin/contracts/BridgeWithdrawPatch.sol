@@ -9,8 +9,8 @@ contract BridgeWithdrawPatch is Context, Bridge {
         address sender;
     }
 
-    // ChainId -> nonce -> data
-    mapping(uint256 => mapping(uint256 => DepositItem)) private depositHistory;
+    // nonce -> chainId -> data
+    mapping(uint64 => mapping(uint8 => bytes)) public _depositRecords;
 
     constructor(
         uint8 domainID,
@@ -29,10 +29,7 @@ contract BridgeWithdrawPatch is Context, Bridge {
         // Saves deposit data
         uint256 amount = abi.decode(data, (uint256));
         uint64 depositNonce = _depositCounts[destinationDomainID];
-        depositHistory[destinationDomainID][depositNonce] = DepositItem(
-            amount,
-            _msgSender()
-        );
+        _depositRecords[depositNonce][destinationDomainID] = data;
     }
 
     function adminWithdraw(
@@ -41,6 +38,7 @@ contract BridgeWithdrawPatch is Context, Bridge {
         address handlerAddress,
         bytes memory data
     ) external onlyAdmin {
+        // Data sent by admin
         address token;
         address recipient;
         uint256 amount;
@@ -48,14 +46,22 @@ contract BridgeWithdrawPatch is Context, Bridge {
             data,
             (address, address, uint256)
         );
-        DepositItem memory depositData = depositHistory[chainId][depositNonce];
+        // History
+        bytes depositData = _depositRecords[depositNonce][chainId];
+        uint256 deposit;
+        uint256 addressLength;
+        address sender;
+        (amount, addressLength, sender) = abi.decode(
+            depositData,
+            (uint256, uint256, address)
+        );
         // Checks if the given data matches with the one saved for the deposit
         require(
-            recipient == depositData.sender,
+            recipient == sender,
             "The refund must be sent to the original sender."
         );
         require(
-            amount == depositData.amount,
+            amount == deposit,
             "The refund amount has to be the same as the deposited one."
         );
 
