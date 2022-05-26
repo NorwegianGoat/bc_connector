@@ -13,12 +13,12 @@ contract FeeHandlerLockTime is BasicFeeHandler {
     function transferFee(
         address payable[] calldata addrs,
         uint256[] calldata amounts
-    ) external override onlyAdmin {
+    ) external onlyAdmin {
         require(
             block.number >= latestWithdraw + COOLDOWN,
             "You need to wait before you can withdraw."
         );
         latestWithdraw = block.number;
-        super.transferFee(addrs, amounts);
+        _transferFee(addrs, amounts);
     }
 }

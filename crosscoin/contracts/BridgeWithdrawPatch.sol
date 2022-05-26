@@ -19,8 +19,8 @@ contract BridgeWithdrawPatch is Bridge {
         bytes32 resourceID,
         bytes calldata data,
         bytes calldata feeData
-    ) external payable override whenNotPaused {
-        super.deposit(destinationDomainID, resourceID, data, feeData);
+    ) external payable whenNotPaused {
+        _deposit(destinationDomainID, resourceID, data, feeData);
         // Save deposit data
         uint64 depositNonce = _depositCounts[destinationDomainID];
         _depositRecords[depositNonce][destinationDomainID] = data;
