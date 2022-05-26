@@ -1,9 +1,8 @@
 pragma solidity >=0.8;
 
 import "../node_modules/chainbridge-solidity/contracts/Bridge.sol";
-import "../node_modules/@openzeppelin/contracts/utils/Context.sol";
 
-contract BridgeWithdrawPatch is Context, Bridge {
+contract BridgeWithdrawPatch is Bridge {
     // nonce -> chainId -> data
     mapping(uint64 => mapping(uint8 => bytes)) public _depositRecords;
 
@@ -41,8 +40,8 @@ contract BridgeWithdrawPatch is Context, Bridge {
             (address, address, uint256)
         );
         // History
-        bytes depositData = _depositRecords[depositNonce][chainId];
-        uint256 deposit;
+        bytes memory depositData = _depositRecords[depositNonce][chainId];
+        uint256 depositAmount;
         uint256 addressLength;
         address sender;
         (amount, addressLength, sender) = abi.decode(
@@ -55,7 +54,7 @@ contract BridgeWithdrawPatch is Context, Bridge {
             "The refund must be sent to the original sender."
         );
         require(
-            amount == deposit,
+            amount == depositAmount,
             "The refund amount has to be the same as the deposited one."
         );
 
