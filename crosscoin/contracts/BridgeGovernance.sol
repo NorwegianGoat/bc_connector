@@ -17,7 +17,8 @@ contract BridgeGovernance is Context, GovernorCountingSimple {
     }
 
     constructor(uint256 _quorum, uint256 _collateral)
-        Governor("BridgeGovernance") payable
+        payable
+        Governor("BridgeGovernance")
     {
         quorumPercentage = _quorum;
         collateral = _collateral;
@@ -48,12 +49,11 @@ contract BridgeGovernance is Context, GovernorCountingSimple {
 
     //Returns the number of votes associated to each partecipant,
     //in this implementation we use a fixed number.
-    function getVotes(address account, uint256 blockNumber)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function _getVotes(
+        address account,
+        uint256 blockNumber,
+        bytes memory params
+    ) internal view override returns (uint256) {
         return 1;
     }
 
