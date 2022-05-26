@@ -10,8 +10,9 @@ contract BridgeWithdrawPatch is Bridge {
         uint8 domainID,
         address[] memory initialRelayers,
         uint256 initialRelayerThreshold,
+        uint256 fee,
         uint256 expiry
-    ) Bridge(domainID, initialRelayers, initialRelayerThreshold, expiry) {}
+    ) Bridge(domainID, initialRelayers, initialRelayerThreshold, fee, expiry) {}
 
     function deposit(
         uint8 destinationDomainID,
