@@ -22,4 +22,5 @@ class Truffle():
             intestation = '> contract address:'
             if intestation in line:
                 addresses.append(line.replace(intestation, "").strip())
+        os.chdir('..')
         return addresses

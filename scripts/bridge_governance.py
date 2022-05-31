@@ -21,7 +21,7 @@ class Vote(Enum):
 
 
 class BridgeGovernance():
-    def __init__(self, node_endpoint: Web3, bridge_governance_addr: str, bridge_addr: str = None):
+    def __init__(self, account, node_endpoint: Web3, bridge_governance_addr: str, bridge_addr: str = None):
         self.node_endpoint = node_endpoint
         self.node_endpoint.middleware_onion.inject(
             geth_poa_middleware, layer=0)
@@ -31,13 +31,14 @@ class BridgeGovernance():
         if bridge_addr != None:
             self.bridge = self.node_endpoint.eth.contract(
                 address=bridge_addr, abi=load_abi("crosscoin/build/contracts/Bridge.json"))
-        with open(SECRET_KEY_PATH) as f:
-            key = f.readline().strip()
-        self.account = self.node_endpoint.eth.account.from_key(
-            key)
+        self.account = account
+
+    def set_account(self, account):
+        self.account = account
 
     def _call_function(self, function, amount: int = 0):
         t_dict = {"chainId": self.node_endpoint.eth.chain_id,
+                  "value": amount,
                   "nonce": self.node_endpoint.eth.get_transaction_count(self.account.address, 'pending'),
                   "gasPrice": self.node_endpoint.toWei(1, "gwei"),
                   "gas": 1000000}
@@ -53,13 +54,13 @@ class BridgeGovernance():
     # Specify an account to be added to the governance
     def join_governance(self, address: str, amount: int):
         function = self.bridge_governance.functions.join(address)
-        self._call_function(function, amount)
+        return self._call_function(function, amount)
 
     # Proposal lifecycle functions: vote, make and execute
     def vote_proposal(self, proposal_id: int, vote: Vote):
         function = self.bridge_governance.functions.castVote(
             proposal_id, vote.value)
-        self._call_function(function)
+        return self._call_function(function)
 
     def _make_proposal(self, targets: List[str], amount: List[int], calldata: List[str], description: str):
         logging.info("calldata is:" + str(calldata))
@@ -67,7 +68,7 @@ class BridgeGovernance():
             targets, amount, calldata, description)
         receipt = self._call_function(function)
         if receipt["status"] == 1:
-            event = bridge.bridge_governance.events.ProposalCreated.getLogs(
+            event = self.bridge_governance.events.ProposalCreated.getLogs(
                 fromBlock=receipt["blockNumber"])
             proposal_id = str(event[0]["args"]["proposalId"])
             proposal = {"proposal_id": proposal_id,
@@ -90,7 +91,7 @@ class BridgeGovernance():
               proposal["calldata"], proposal["description_hash"])
         function = self.bridge_governance.functions.execute(
             proposal["targets"], proposal["values"], proposal["calldata"], proposal["description_hash"])
-        self._call_function(function)
+        return self._call_function(function)
 
     # This command has some effect only if the function is called with the admin account
     # It drops priviledges on the bridge from the individual and it gives them to the
@@ -105,17 +106,17 @@ class BridgeGovernance():
             fn_name="adminSetResource", args=resource_addresses)
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
-    def add_relayer_proposal(self, relayer_address:str, description):
+    def add_relayer_proposal(self, relayer_address: str, description: str):
         calldata = self.bridge.encodeABI(
             fn_name="adminAddRelayer", args=relayer_address)
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
-    def rm_relayer_proposal(self, relayer_address:str, description):
+    def rm_relayer_proposal(self, relayer_address: str, description):
         calldata = self.bridge.encodeABI(
             fn_name="adminRemoveRelayer", args=relayer_address)
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
-    def change_relayer_threshold_proposal(self, relayer_threshold:int, description:str):
+    def change_relayer_threshold_proposal(self, relayer_threshold: int, description: str):
         calldata = self.bridge.encodeABI(
             fn_name="adminRelayerThreshold", args=relayer_threshold)
         return self._make_proposal([self.bridge.address], [0], [calldata], description)

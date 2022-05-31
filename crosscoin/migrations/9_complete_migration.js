@@ -20,7 +20,7 @@ module.exports = function (deployer) {
   //Root board deploy
   deployer.deploy(RootBoard);
   //Governance deploy
-  const Quorum = 50
+  const Quorum = 66
   const Collateral = "1000000000000000000"
   deployer.deploy(BridgeGovernance, Quorum, Collateral,
     { value: Collateral });
