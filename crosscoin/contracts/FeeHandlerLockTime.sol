@@ -4,7 +4,7 @@ import "../node_modules/chainbridge-solidity/contracts/handlers/fee/BasicFeeHand
 
 contract FeeHandlerLockTime is BasicFeeHandler {
     uint256 private latestWithdraw;
-    uint256 constant COOLDOWN = 7776000; // 6 months at 30 blocks per minute
+    uint256 constant COOLDOWN = 10; //7776000; //6 months at 30 blocks per minute
 
     constructor(address bridgeAddress) BasicFeeHandler(bridgeAddress) {
         latestWithdraw = block.number;
