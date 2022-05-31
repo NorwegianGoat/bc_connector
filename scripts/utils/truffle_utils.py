@@ -16,4 +16,10 @@ class Truffle():
         os.chdir("crosscoin")
         command = [COMMAND, 'migrate',
                    '--network', self.endpoint, '-f', str(f), '-t', str(t)]
-        subprocess.run(command)
+        out = subprocess.run(command, capture_output=True, text=True)
+        addresses = []
+        for line in out.stdout.splitlines(keepends=True):
+            intestation = '> contract address:'
+            if intestation in line:
+                addresses.append(line.replace(intestation, "").strip())
+        return addresses

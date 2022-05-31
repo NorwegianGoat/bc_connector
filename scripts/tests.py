@@ -1,17 +1,35 @@
 import unittest
 from utils.truffle_utils import Truffle
+from model.node import Node
 
+
+NODE0_ENDPOINT = "http://192.168.1.110:8545"
+PKEY_PATH = 'resources/.secret'
+TRUDY_PKEY_PATH = 'resources/.tsecret'
 
 class TestPatches(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Deploy contracts
         deployer = Truffle("goatchain0")
-        deployer.run_migration(9, 9)
+        cls.contracts = deployer.run_migration(9, 9)
+        # Configure node
+        cls.n0 = Node(NODE0_ENDPOINT)
+        # Configuring test accounts
+        with open(PKEY_PATH) as f:
+            key = f.readline().strip()
+        cls.alice = cls.n0.provider.eth.account.from_key(key)
+        with open(TRUDY_PKEY_PATH) as f:
+            key = f.readline().strip()
+        cls.trudy = cls.n0.provider.eth.account.from_key(key)
+        # Drop admin privileges and give them to the governance
+        
+        # Join the governance with the second account
 
     # A non admin user should not be able to make a proposal
     def test_proposalNonAdmin(self):
         self.assertEqual(None, None)
-
+    
     # An user which is an admin should be able to make a proposal
     def test_proposalAdmin(self):
         pass
