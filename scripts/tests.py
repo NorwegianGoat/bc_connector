@@ -2,11 +2,13 @@ import unittest
 from utils.truffle_utils import Truffle
 from bridge_governance import BridgeGovernance, Vote
 from web3 import Web3, HTTPProvider
+import time
 
 
 NODE0_ENDPOINT = "http://192.168.1.110:8545"
 PKEY_PATH = 'resources/.secret'
 TRUDY_PKEY_PATH = 'resources/.tsecret'
+WAIT = 20
 
 
 class TestPatches(unittest.TestCase):
@@ -33,17 +35,16 @@ class TestPatches(unittest.TestCase):
     def test_0proposalNonAdmin(self):
         # test with trudy
         TestPatches.governance.set_account(TestPatches.trudy)
-        response = TestPatches.governance.add_relayer_proposal(
+        proposal_id = TestPatches.governance.add_relayer_proposal(
             [TestPatches.trudy.address], "Add me as relayer pls.")
         TestPatches.governance.set_account(TestPatches.alice)
-        self.assertIsNone(response)
+        self.assertIsNone(proposal_id)
 
     # An user which is an admin should be able to make a proposal
-
     def test_1proposalAdmin(self):
-        response = TestPatches.governance.add_relayer_proposal(
+        proposal_id = TestPatches.governance.add_relayer_proposal(
             [TestPatches.trudy.address], "Add Trudy as relayer.")
-        self.assertIsNotNone(response)
+        self.assertIsNotNone(proposal_id)
 
     # Tries to execute a proposal which has not met the quorum. Should fail.
     def test_2executeProposalNoQuorum(self):
@@ -51,24 +52,39 @@ class TestPatches(unittest.TestCase):
         TestPatches.governance.set_account(TestPatches.trudy)
         receipt = TestPatches.governance.join_governance(
             TestPatches.trudy.address, 1000000000000000000)
-        response = TestPatches.governance.remap_proposal(["0xCC08eac119e25f6E365C25d61eA60bC8e74B681e", "0xd8de56dd1db472be57d5840cb8d8d5961c69601e8d8d8a0c97a57c9ae8cb0f0f",
-                                                           "0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38"],
-                                                         "I promise that this mapping is good!")
-        TestPatches.governance.vote_proposal(response, Vote.FOR)
-        receipt = TestPatches.governance.execute_proposal(response)
+        proposal_id = TestPatches.governance.remap_proposal(["0xCC08eac119e25f6E365C25d61eA60bC8e74B681e", "0xd8de56dd1db472be57d5840cb8d8d5961c69601e8d8d8a0c97a57c9ae8cb0f0f",
+                                                             "0x3ab2A28A2a95FA7bbBdF8DfED9e6D945E99dDf38"],
+                                                            "I promise that this mapping is good!")
+        TestPatches.governance.vote_proposal(proposal_id, Vote.FOR)
+        # Wait 10 blocks
+        time.sleep(WAIT)
+        receipt = TestPatches.governance.execute_proposal(proposal_id)
+        TestPatches.governance.set_account(TestPatches.alice)
         self.assertEqual(receipt['status'], 0)
 
-    # Executes a proposal which has met the quorum.
-    def test_executoeProposalQuorum(self):
-        pass
+    # Executes a proposal which has met the quorum and is passed
+    def test_3executeProposalQuorum(self):
+        proposal_id = TestPatches.governance.add_relayer_proposal(
+            ["0xFb3a2e25724D42b982634Dd060A026C458d67418"], "Let's add this random address as relayer!")
+        TestPatches.governance.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance.set_account(TestPatches.trudy)
+        TestPatches.governance.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance.set_account(TestPatches.alice)
+        time.sleep(WAIT)
+        receipt = TestPatches.governance.execute_proposal(proposal_id)
+        self.assertEqual(receipt['status'], 1)
 
     # Tries to execute a proposal which is not passed. Should fail.
-    def test_executeProposalNotPassed(self):
-        pass
-
-    # Tries to execute a proposal which is passed. Should pass.
-    def test_executeProposalPassed(self):
-        pass
+    def test_4executeProposalNotPassed(self):
+        proposal_id = TestPatches.governance.add_relayer_proposal(
+            ["0xF5a1AB745E1E9AB203bB28d397C12D2840256dff"], "Let's add this other random address as relayer!")
+        TestPatches.governance.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance.set_account(TestPatches.trudy)
+        TestPatches.governance.vote_proposal(proposal_id, Vote.AGAINST)
+        TestPatches.governance.set_account(TestPatches.alice)
+        time.sleep(WAIT)
+        receipt = TestPatches.governance.execute_proposal(proposal_id)
+        self.assertEqual(receipt['status'], 0)
 
     # A relayer ask for a remap, but his storage is wrong. Should fail.
     def test_askRemapWrongStorage(self):
