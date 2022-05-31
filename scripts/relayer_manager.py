@@ -19,12 +19,13 @@ NODE_ENDPOINT = "http://"+NODE_IP+":8545"
 
 
 class RelayerManager():
-    def __init__(self, address: str, port: int, dst_endpoint: str):
+    def __init__(self, address: str, port: int, dst_endpoint: str, local_board: str = LOCAL_BOARD):
         # Blockchain nodes and contracts
         self.src_endpoint = None
         self.dst_endpoint = Web3(HTTPProvider(dst_endpoint))
         self.src_addrs = None
         self.dst_addrs = None
+        self.local_board = local_board
         # Root board writer admin account
         with open(SECRET_KEY_PATH) as f:
             key = f.readline().strip()
@@ -70,14 +71,14 @@ class RelayerManager():
     def _get_root(self):
         board_abi = load_abi(os.path.join(CONTRACT_ABIS, "RootBoard.json"))
         board = self.dst_endpoint.eth.contract(
-            abi=board_abi, address=LOCAL_BOARD)
+            abi=board_abi, address=self.local_board)
         return board.functions.getLatestRoot(
             self.src_endpoint.eth.chain_id).call()
 
     def _write_root(self, nonce: int, root: str):
         board_abi = load_abi(os.path.join(CONTRACT_ABIS, "RootBoard.json"))
         board = self.dst_endpoint.eth.contract(
-            abi=board_abi, address=LOCAL_BOARD)
+            abi=board_abi, address=self.local_board)
         # Fire redeem transaction
         t_dict = {"chainId": self.dst_endpoint.eth.chain_id,
                   "nonce": self.dst_endpoint.eth.get_transaction_count(self.relayer_admin_account.address, 'pending'),
@@ -125,11 +126,11 @@ class RelayerManager():
                 return False
         # We log the contract used
         add_contract(ContractTypes.BRIDGE.value,
-                        self.src_addrs[0], self.src_endpoint.eth.chain_id, int(time.time()))
+                     self.src_addrs[0], self.src_endpoint.eth.chain_id, int(time.time()))
         add_contract(ContractTypes.ERC20_HANDLER.value,
-                        self.src_addrs[1], self.src_endpoint.eth.chain_id, int(time.time()))
+                     self.src_addrs[1], self.src_endpoint.eth.chain_id, int(time.time()))
         add_contract(ContractTypes.ERC20.value,
-                        self.src_addrs[2], self.src_endpoint.eth.chain_id, int(time.time()))
+                     self.src_addrs[2], self.src_endpoint.eth.chain_id, int(time.time()))
         # Write the updated root on chain
         trie = trie_maker(
             self.src_endpoint, self.dst_endpoint, self.src_addrs[0], save_on_disk=True)
@@ -152,7 +153,8 @@ class RelayerManager():
         if self._bytecode_matches() and self._storage_integrity():
             if self.relayer.is_relayer_running():
                 self.relayer.stop_relay()
-            self.relayer.update_config_json(self.dst_endpoint, ContractTypes.ERC20)
+            self.relayer.update_config_json(
+                self.dst_endpoint, ContractTypes.ERC20)
             self.relayer.start_relay(latest=from_block)
             return {"response": "OK",
                     "extra": "We are parsing your events."}
