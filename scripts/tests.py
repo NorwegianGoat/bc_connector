@@ -66,8 +66,8 @@ class TestPatches(unittest.TestCase):
         cls.governance_n0.drop_priviledges()
         cls.governance_n1.drop_priviledges()
         # Configure chain 1 bridges
-        proposal_id = cls.governance_n1.remap_proposal([cls.contracts_n1[0], RES_ID,
-                                                        cls.contracts_n1[2]],
+        proposal_id = cls.governance_n1.remap_proposal([cls.contracts_n1[2], RES_ID,
+                                                        cls.contracts_n1[0]],
                                                        "This is a good mapping.")
         cls.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         time.sleep(WAIT)
@@ -115,8 +115,8 @@ class TestPatches(unittest.TestCase):
 
     # Executes a proposal which has met the quorum and is passed
     def test_03executeProposalQuorum(self):
-        proposal_id = TestPatches.governance_n0.remap_proposal([TestPatches.contracts_n0[0], RES_ID,
-                                                                TestPatches.contracts_n0[2]],
+        proposal_id = TestPatches.governance_n0.remap_proposal([TestPatches.contracts_n0[2], RES_ID,
+                                                                TestPatches.contracts_n0[0]],
                                                                "This is a good mapping.")
         TestPatches.governance_n0.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n0.set_account(TestPatches.trudy)
@@ -192,7 +192,7 @@ class TestPatches(unittest.TestCase):
         # We intentionally break the origin bridge
         proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[0], RES_ID,
                                                                 TestPatches.contracts_n1[0]],
-                                                               "This is a good mapping.")
+                                                               "This seems to be a good idea.")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
@@ -207,8 +207,8 @@ class TestPatches(unittest.TestCase):
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "NOK")
         # Restore bridge
-        proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[0], RES_ID,
-                                                                TestPatches.contracts_n1[2]],
+        proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[2], RES_ID,
+                                                                TestPatches.contracts_n1[0]],
                                                                "This is a good mapping.")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
@@ -234,7 +234,7 @@ class TestPatches(unittest.TestCase):
         time.sleep(WAIT)
         TestPatches.governance_n1.set_account(TestPatches.alice)
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
-        self.assertEqual(receipt['status'], 1)
+        self.assertEqual(receipt['status'], 0)
 
     # Admin tries to refund an user sending good data to the smart contract.
 
