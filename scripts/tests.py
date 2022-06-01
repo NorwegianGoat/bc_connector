@@ -226,8 +226,8 @@ class TestPatches(unittest.TestCase):
         amount = TestPatches.n1.toBytes(
             TestPatches.n1.toWei(2, 'ether')).rjust(32, b'\0')
         data = handler_addr + user_addr + amount
-        proposal_id = TestPatches.governance_n1.refund_user_proposal(
-            TestPatches.contracts_n1[2], data, "Let's give him back his money!")
+        proposal_id = TestPatches.governance_n1.refund_user_proposal(100, 1,
+                                                                     TestPatches.contracts_n1[2], data, "Let's give him back his money!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
