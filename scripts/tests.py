@@ -218,7 +218,7 @@ class TestPatches(unittest.TestCase):
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
 
     # Admin tries to refund an user sending wrong data to the smart contract. Should fail.
-    def test_09refundWrongData(self):
+    def test_08refundWrongData(self):
         handler_addr = TestPatches.n1.toBytes(
             hexstr=TestPatches.contracts_n1[2]).rjust(32, b'\0')
         user_addr = TestPatches.n1.toBytes(
@@ -227,7 +227,7 @@ class TestPatches(unittest.TestCase):
             TestPatches.n1.toWei(2, 'ether')).rjust(32, b'\0')
         data = handler_addr + user_addr + amount
         proposal_id = TestPatches.governance_n1.refund_user_proposal(
-            TestPatches.contracts_n1[2], data)
+            TestPatches.contracts_n1[2], data, "Let's give him back his money!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
@@ -238,7 +238,7 @@ class TestPatches(unittest.TestCase):
 
     # Admin tries to refund an user sending good data to the smart contract.
 
-    def test_10refundGoodData(self):
+    def test_09refundGoodData(self):
         handler_addr = TestPatches.n1.toBytes(
             hexstr=TestPatches.contracts_n1[2]).rjust(32, b'\0')
         user_addr = TestPatches.n1.toBytes(
@@ -247,7 +247,7 @@ class TestPatches(unittest.TestCase):
             TestPatches.n1.toWei(1, 'ether')).rjust(32, b'\0')
         data = handler_addr + user_addr + amount
         proposal_id = TestPatches.governance_n1.refund_user_proposal(100, 1,
-                                                                     TestPatches.contracts_n1[2], data)
+                                                                     TestPatches.contracts_n1[2], data, "Sorry, I made a mistake!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
@@ -257,11 +257,11 @@ class TestPatches(unittest.TestCase):
         self.assertEqual(receipt['status'], 1)
 
     # Admin withdraws the fee to early. Should fail.
-    def test_11withdrawFeeTooEarly(self):
+    def test_10withdrawFeeTooEarly(self):
         pass
 
     # Admin whithdraw the fee after waiting enough time.
-    def test_12withdrawFee(self):
+    def test_11withdrawFee(self):
         pass
 
 
