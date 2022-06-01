@@ -88,7 +88,7 @@ class BridgeGovernance():
         with open(os.path.join(PROPOSALS_BASE_PATH, str(proposal_id) + ".json")) as f:
             proposal = json.load(fp=f)
         logging.info(proposal["targets"], proposal["values"],
-              proposal["calldata"], proposal["description_hash"])
+                     proposal["calldata"], proposal["description_hash"])
         function = self.bridge_governance.functions.execute(
             proposal["targets"], proposal["values"], proposal["calldata"], proposal["description_hash"])
         return self._call_function(function)
@@ -132,8 +132,14 @@ class BridgeGovernance():
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
     def withdraw_fee_proposal(self, description):
+        # TODO: ENCODING PARAMETERS
         calldata = self.bridge.encodeABI(
-            fn_name="adminUnpauseTransfers")
+            fn_name="")
+        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+
+    def refund_user_proposal(self, chain_id:int, deposit_id:int, handler_address: str, data, description):
+        calldata = self.bridge.encodeABI(
+            fn_name="adminWithdraw", args=[chain_id, deposit_id, handler_address, data])
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
 

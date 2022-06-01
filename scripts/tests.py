@@ -152,7 +152,7 @@ class TestPatches(unittest.TestCase):
             os.remove(history)
         response = relayer_client.ask_remap(
             "http://192.168.1.110:23456", "http://192.168.1.120:8545",
-            TestPatches.n1.eth.get_block("latest")['number']-1000, TestPatches.contracts_n1[1], RES_ID)
+            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "OK")
 
     # A relayer ask for a remap, but his storage is wrong. Should fail.
@@ -172,8 +172,7 @@ class TestPatches(unittest.TestCase):
                                        TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
         response = relayer_client.ask_remap(
             "http://192.168.1.110:23456", "http://192.168.1.120:8545",
-            TestPatches.n1.eth.get_block("latest")['number']-1000, TestPatches.contracts_n1[1], RES_ID)
-        # TODO: RM RELAYER?
+            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         # Restore the old state
         for node in CHAIN1:
             ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
@@ -185,33 +184,77 @@ class TestPatches(unittest.TestCase):
                                        TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
         response = relayer_client.ask_remap(
             "http://192.168.1.110:23456", "http://192.168.1.120:8545",
-            TestPatches.n1.eth.get_block("latest")['number']-1000, TestPatches.contracts_n1[1], RES_ID)
+            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "NOK")
 
     # A relayer asks for remap. Smart contract code is not equal. Should fail.
     def test_07askRemapWrongCode(self):
         # We intentionally break the origin bridge
         proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[0], RES_ID,
-                                                        TestPatches.contracts_n1[0]],
-                                                       "This is a good mapping.")
+                                                                TestPatches.contracts_n1[0]],
+                                                               "This is a good mapping.")
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         time.sleep(WAIT)
+        TestPatches.governance_n1.set_account(TestPatches.alice)
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
         history = "resources/contract_storage_tries/45.json"
         if os.path.exists(history):
             os.remove(history)
         response = relayer_client.ask_remap(
             "http://192.168.1.110:23456", "http://192.168.1.120:8545",
-            TestPatches.n1.eth.get_block("latest")['number']-1000, TestPatches.contracts_n1[1], RES_ID)
+            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "NOK")
+        # Restore bridge
+        proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[0], RES_ID,
+                                                                TestPatches.contracts_n1[2]],
+                                                               "This is a good mapping.")
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance_n1.set_account(TestPatches.trudy)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        time.sleep(WAIT)
+        TestPatches.governance_n1.set_account(TestPatches.alice)
+        receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
 
     # Admin tries to refund an user sending wrong data to the smart contract. Should fail.
     def test_09refundWrongData(self):
-        pass
+        handler_addr = TestPatches.n1.toBytes(
+            hexstr=TestPatches.contracts_n1[2]).rjust(32, b'\0')
+        user_addr = TestPatches.n1.toBytes(
+            hexstr=TestPatches.alice.address).rjust(32, b'\0')
+        amount = TestPatches.n1.toBytes(
+            TestPatches.n1.toWei(2, 'ether')).rjust(32, b'\0')
+        data = handler_addr + user_addr + amount
+        proposal_id = TestPatches.governance_n1.refund_user_proposal(
+            TestPatches.contracts_n1[2], data)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance_n1.set_account(TestPatches.trudy)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        time.sleep(WAIT)
+        TestPatches.governance_n1.set_account(TestPatches.alice)
+        receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
+        self.assertEqual(receipt['status'], 1)
 
     # Admin tries to refund an user sending good data to the smart contract.
+
     def test_10refundGoodData(self):
-        pass
+        handler_addr = TestPatches.n1.toBytes(
+            hexstr=TestPatches.contracts_n1[2]).rjust(32, b'\0')
+        user_addr = TestPatches.n1.toBytes(
+            hexstr=TestPatches.alice.address).rjust(32, b'\0')
+        amount = TestPatches.n1.toBytes(
+            TestPatches.n1.toWei(1, 'ether')).rjust(32, b'\0')
+        data = handler_addr + user_addr + amount
+        proposal_id = TestPatches.governance_n1.refund_user_proposal(100, 1,
+                                                                     TestPatches.contracts_n1[2], data)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance_n1.set_account(TestPatches.trudy)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        time.sleep(WAIT)
+        TestPatches.governance_n1.set_account(TestPatches.alice)
+        receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
+        self.assertEqual(receipt['status'], 1)
 
     # Admin withdraws the fee to early. Should fail.
     def test_11withdrawFeeTooEarly(self):
