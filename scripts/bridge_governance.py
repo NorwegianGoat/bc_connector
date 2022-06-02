@@ -21,7 +21,7 @@ class Vote(Enum):
 
 
 class BridgeGovernance():
-    def __init__(self, account, node_endpoint: Web3, bridge_governance_addr: str, bridge_addr: str = None):
+    def __init__(self, account, node_endpoint: Web3, bridge_governance_addr: str, bridge_addr: str = None, fee_handler_addr: str = None):
         self.node_endpoint = node_endpoint
         self.node_endpoint.middleware_onion.inject(
             geth_poa_middleware, layer=0)
@@ -30,7 +30,10 @@ class BridgeGovernance():
             address=bridge_governance_addr, abi=load_abi("crosscoin/build/contracts/BridgeGovernance.json"))
         if bridge_addr != None:
             self.bridge = self.node_endpoint.eth.contract(
-                address=bridge_addr, abi=load_abi("crosscoin/build/contracts/Bridge.json"))
+                address=bridge_addr, abi=load_abi("crosscoin/build/contracts/BridgeWithdrawPatch.json"))
+        if fee_handler_addr != None:
+            self.fee_handler = self.node_endpoint.eth.contract(address=fee_handler_addr, abi=load_abi(
+                "crosscoin/build/contracts/FeeHandlerLockTime.json"))
         self.account = account
 
     def set_account(self, account):
@@ -131,13 +134,12 @@ class BridgeGovernance():
             fn_name="adminUnpauseTransfers")
         return self._make_proposal([self.bridge.address], [0], [calldata], description)
 
-    def withdraw_fee_proposal(self, description):
-        # TODO: ENCODING PARAMETERS
-        calldata = self.bridge.encodeABI(
-            fn_name="")
-        return self._make_proposal([self.bridge.address], [0], [calldata], description)
+    def withdraw_fee_proposal(self, addresses: List[str], amounts: List[str], description):
+        calldata = self.fee_handler.encodeABI(
+            fn_name="transferFee", args=[addresses, amounts])
+        return self._make_proposal([self.fee_handler.address], [0], [calldata], description)
 
-    def refund_user_proposal(self, chain_id:int, deposit_id:int, handler_address: str, data, description):
+    def refund_user_proposal(self, chain_id: int, deposit_id: int, handler_address: str, data, description):
         calldata = self.bridge.encodeABI(
             fn_name="adminWithdraw", args=[chain_id, deposit_id, handler_address, data])
         return self._make_proposal([self.bridge.address], [0], [calldata], description)

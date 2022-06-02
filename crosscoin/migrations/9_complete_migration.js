@@ -5,6 +5,7 @@ const Erc20Handler = artifacts.require("node_modules/chainbridge-solidity/contra
 const BridgeWithdrawPatch = artifacts.require("BridgeWithdrawPatch");
 const RootBoard = artifacts.require("RootBoard");
 const BridgeGovernance = artifacts.require("BridgeGovernance");
+const FeeHandler = artifacts.require("FeeHandlerLockTime");
 
 
 module.exports = function (deployer, network) {
@@ -21,6 +22,8 @@ module.exports = function (deployer, network) {
   });
   //Root board deploy
   deployer.deploy(RootBoard);
+  //FeeHandler deploy
+  deployer.deploy(FeeHandler, BridgeWithdrawPatch.address);
   //Governance deploy
   const Quorum = 66
   const Collateral = "1000000000000000000"

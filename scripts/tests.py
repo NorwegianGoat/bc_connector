@@ -55,10 +55,10 @@ class TestPatches(unittest.TestCase):
         with open(PKEY_PATH) as f:
             key = f.readline().strip()
         cls.alice = cls.n0.eth.account.from_key(key)
-        cls.governance_n0 = BridgeGovernance(cls.alice,
-                                             cls.n0, cls.contracts_n0[-1], cls.contracts_n0[1])
-        cls.governance_n1 = BridgeGovernance(cls.alice,
-                                             cls.n1, cls.contracts_n1[-1], cls.contracts_n1[1])
+        cls.governance_n0 = BridgeGovernance(
+            cls.alice, cls.n0, cls.contracts_n0[-1], cls.contracts_n0[1], bridge_governance_addr=cls.contracts_n0[4])
+        cls.governance_n1 = BridgeGovernance(
+            cls.alice, cls.n1, cls.contracts_n1[-1], cls.contracts_n1[1], bridge_governance_addr=cls.contracts_n1[4])
         with open(TRUDY_PKEY_PATH) as f:
             key = f.readline().strip()
         cls.trudy = cls.n0.eth.account.from_key(key)
@@ -72,6 +72,7 @@ class TestPatches(unittest.TestCase):
         cls.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         time.sleep(WAIT)
         receipt = cls.governance_n1.execute_proposal(proposal_id)
+        # TODO: Setup fee handler -> check if it works even if unconfigured
         # Start relayer server and config cb wrapper
         cls.cb_wrapper = CBWrapper()
         cls.relayer_manager = Process(target=RelayerManager, args=(
@@ -174,7 +175,6 @@ class TestPatches(unittest.TestCase):
         response = relayer_client.ask_remap(
             "http://192.168.1.110:23456", "http://192.168.1.120:8545",
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
-        self.assertEqual(response["response"], "NOK")
         # Restore bridge
         proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[2], RES_ID,
                                                                 TestPatches.contracts_n1[0]],
@@ -185,6 +185,7 @@ class TestPatches(unittest.TestCase):
         time.sleep(WAIT)
         TestPatches.governance_n1.set_account(TestPatches.alice)
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
+        self.assertEqual(response["response"], "NOK")
 
     # A relayer ask for a remap, but his storage is wrong. Should fail.
     def test_07askRemapWrongStorage(self):
@@ -256,13 +257,29 @@ class TestPatches(unittest.TestCase):
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
         self.assertEqual(receipt['status'], 1)
 
-    # Admin withdraws the fee to early. Should fail.
-    def test_10withdrawFeeTooEarly(self):
-        pass
-
     # Admin whithdraw the fee after waiting enough time.
-    def test_11withdrawFee(self):
-        pass
+    def test_10withdrawFee(self):
+        proposal_id = TestPatches.governance_n1.withdraw_fee_proposal(
+            [TestPatches.alice.address, TestPatches.trudy.address], [0,0], "Payday!")
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance_n1.set_account(TestPatches.trudy)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        time.sleep(WAIT)
+        TestPatches.governance_n1.set_account(TestPatches.alice)
+        receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
+        self.assertEqual(receipt['status'], 1)
+    
+    # Admin withdraws the fee to early. Should fail.
+    def test_11withdrawFeeTooEarly(self):
+        proposal_id = TestPatches.governance_n1.withdraw_fee_proposal(
+            [TestPatches.alice.address, TestPatches.trudy.address], [0,0], "Payday, again!")
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        TestPatches.governance_n1.set_account(TestPatches.trudy)
+        TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
+        time.sleep(WAIT)
+        TestPatches.governance_n1.set_account(TestPatches.alice)
+        receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
+        self.assertEqual(receipt['status'], 0)
 
 
 if __name__ == "__main__":
