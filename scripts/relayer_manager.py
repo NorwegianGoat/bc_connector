@@ -66,8 +66,7 @@ class RelayerManager():
 
     def _bytecode_matches(self):
         return verify_bytecode([self.src_endpoint.provider.endpoint_uri, self.dst_endpoint.provider.endpoint_uri], self.src_addrs, self.dst_addrs)
-        # return True # Just for test puposes
-
+        
     def _get_root(self):
         board_abi = load_abi(os.path.join(CONTRACT_ABIS, "RootBoard.json"))
         board = self.dst_endpoint.eth.contract(

@@ -11,7 +11,7 @@ CONTRACT_ADDRESS = "0xAd28ab39509672F4D621206710654bd875D5fEa2"
 NODE_ENDPOINT = "http://192.168.1.110:8545"
 
 TRIES_BASEPATH = "resources/contract_storage_tries"
-
+METADATA_DELIMITER = "264697066735822"
 
 def verify_bytecode(node_endpoints: List[str], src_addrs: List[str], dst_addrs: List[str]) -> bool:
     src_bytecode = []
@@ -19,12 +19,16 @@ def verify_bytecode(node_endpoints: List[str], src_addrs: List[str], dst_addrs: 
     for i in range(0, len(src_addrs)):
         data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
                            "params": [src_addrs[i], "latest"], "id": 1})
-        src_bytecode.append(json.loads(requests.post(
-            url=node_endpoints[0], data=data).text)['result'])
+        bytecode = json.loads(requests.post(
+            url=node_endpoints[0], data=data).text)['result']
+        bytecode = bytecode[bytecode.index(METADATA_DELIMITER):]
+        src_bytecode.append(bytecode)
         data = json.dumps({"jsonrpc": "2.0", "method": "eth_getCode",
                            "params": [dst_addrs[i], "latest"], "id": 1})
-        dst_bytecode.append(json.loads(requests.post(
-            url=node_endpoints[1], data=data).text)['result'])
+        bytecode = json.loads(requests.post(
+            url=node_endpoints[1], data=data).text)['result']
+        bytecode = bytecode[bytecode.index(METADATA_DELIMITER):]
+        dst_bytecode.append(bytecode)
     if src_bytecode == dst_bytecode:
         logging.info("Bytecode matches")
         return True
@@ -40,7 +44,7 @@ def load_abi(abi_path: str):
 
 
 def trie_maker(source_endpoint: Web3, dest_endpoint: Web3, src_bridge_addr: str, latest_nonce: int = None, save_on_disk: bool = False):
-    abi = load_abi("crosscoin/build/contracts/Bridge.json")
+    abi = load_abi("crosscoin/build/contracts/BridgeWithdrawPatch.json")
     contract = source_endpoint.eth.contract(abi=abi, address=src_bridge_addr)
     if not latest_nonce:
         # Get the latest nonce used by source chain to dest chain
