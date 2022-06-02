@@ -79,7 +79,7 @@ class TestPatches(unittest.TestCase):
         cls.relayer_manager.start()
 
     @classmethod
-    def tearDown(cls):
+    def tearDownClass(cls):
         cls.relayer_manager.terminate()
 
     # A non admin user should not be able to make a proposal
@@ -143,9 +143,10 @@ class TestPatches(unittest.TestCase):
         # Generate some deposits on chain 1
         redeem_tokens(TestPatches.n1, TestPatches.alice,
                       TestPatches.n1.toWei(1, 'ether'), ContractTypes.ERC20)
+        TestPatches.cb_wrapper.approve("http://192.168.1.120:8545", TestPatches.alice.key.hex(
+        ), 100000, ContractTypes.ERC20, 1, TestPatches.contracts_n1[0], TestPatches.contracts_n1[2])
         TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
-                                       ContractTypes.ERC20, TestPatches.n1.toWei(
-                                           1, 'ether'), 100,
+                                       ContractTypes.ERC20, 1, 100,
                                        TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
         history = "resources/contract_storage_tries/45.json"
         if os.path.exists(history):
@@ -155,40 +156,8 @@ class TestPatches(unittest.TestCase):
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "OK")
 
-    # A relayer ask for a remap, but his storage is wrong. Should fail.
-    def test_06askRemapWrongStorage(self):
-        CHAIN1 = ['192.168.1.120', '192.168.1.121',
-                  '192.168.1.122', '192.168.1.123']
-        redeem_tokens(TestPatches.n1, TestPatches.alice,
-                      TestPatches.n1.toWei(1, 'ether'), ContractTypes.ERC20)
-        for node in CHAIN1:
-            ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py',
-                                      'halt_node', '&&', 'python3', 'helper.py', 'backup', '--backup_name',
-                                      'malicious_rollback', '--override', 'true', '&&', 'python3', 'helper.py', 'start_validator',
-                                      '--ip', node, '1>/dev/null', '2>/dev/null'])
-        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
-                                       ContractTypes.ERC20, TestPatches.n1.toWei(
-                                           1, 'ether'), 100,
-                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
-        response = relayer_client.ask_remap(
-            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
-            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
-        # Restore the old state
-        for node in CHAIN1:
-            ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
-                                      'python3', 'helper.py', 'restore', '--backup_path', './edge/malicious_rollback',
-                                      '&&', 'python3', 'helper.py', 'start_validator', '--ip', node, '1>/dev/null', '2>/dev/null'])
-        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
-                                       ContractTypes.ERC20, TestPatches.n1.toWei(
-                                           1, 'ether'), 100,
-                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
-        response = relayer_client.ask_remap(
-            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
-            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
-        self.assertEqual(response["response"], "NOK")
-
     # A relayer asks for remap. Smart contract code is not equal. Should fail.
-    def test_07askRemapWrongCode(self):
+    def test_06askRemapWrongCode(self):
         # We intentionally break the origin bridge
         proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[0], RES_ID,
                                                                 TestPatches.contracts_n1[0]],
@@ -217,15 +186,47 @@ class TestPatches(unittest.TestCase):
         TestPatches.governance_n1.set_account(TestPatches.alice)
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
 
+    # A relayer ask for a remap, but his storage is wrong. Should fail.
+    def test_07askRemapWrongStorage(self):
+        CHAIN1 = ['192.168.1.120', '192.168.1.121',
+                  '192.168.1.122', '192.168.1.123']
+        redeem_tokens(TestPatches.n1, TestPatches.alice,
+                      TestPatches.n1.toWei(1, 'ether'), ContractTypes.ERC20)
+        TestPatches.cb_wrapper.approve("http://192.168.1.120:8545", TestPatches.alice.key.hex(
+        ), 100000, ContractTypes.ERC20, 1, TestPatches.contracts_n1[0], TestPatches.contracts_n1[2])
+        for node in CHAIN1:
+            ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py',
+                                      'halt_node', '&&', 'python3', 'helper.py', 'backup', '--backup_name',
+                                      'malicious_rollback', '--override', 'true', '&&', 'python3', 'helper.py', 'start_validator',
+                                      '--ip', node, '1>/dev/null', '2>/dev/null'])
+        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
+                                       ContractTypes.ERC20, 1, 100,
+                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
+        response = relayer_client.ask_remap(
+            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
+            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
+        # Restore the old state
+        for node in CHAIN1:
+            ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
+                                      'python3', 'helper.py', 'restore', '--backup_path', './edge/malicious_rollback',
+                                      '&&', 'python3', 'helper.py', 'start_validator', '--ip', node, '1>/dev/null', '2>/dev/null'])
+        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
+                                       ContractTypes.ERC20, 1, 100,
+                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
+        response = relayer_client.ask_remap(
+            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
+            TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
+        self.assertEqual(response["response"], "NOK")
+
     # Admin tries to refund an user sending wrong data to the smart contract. Should fail.
     def test_08refundWrongData(self):
-        handler_addr = TestPatches.n1.toBytes(
-            hexstr=TestPatches.contracts_n1[2]).rjust(32, b'\0')
+        token_addr = TestPatches.n1.toBytes(
+            hexstr=TestPatches.contracts_n1[0]).rjust(32, b'\0')
         user_addr = TestPatches.n1.toBytes(
             hexstr=TestPatches.alice.address).rjust(32, b'\0')
         amount = TestPatches.n1.toBytes(
             TestPatches.n1.toWei(2, 'ether')).rjust(32, b'\0')
-        data = handler_addr + user_addr + amount
+        data = token_addr + user_addr + amount
         proposal_id = TestPatches.governance_n1.refund_user_proposal(100, 1,
                                                                      TestPatches.contracts_n1[2], data, "Let's give him back his money!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
@@ -239,13 +240,12 @@ class TestPatches(unittest.TestCase):
     # Admin tries to refund an user sending good data to the smart contract.
 
     def test_09refundGoodData(self):
-        handler_addr = TestPatches.n1.toBytes(
-            hexstr=TestPatches.contracts_n1[2]).rjust(32, b'\0')
+        token_addr = TestPatches.n1.toBytes(
+            hexstr=TestPatches.contracts_n1[0]).rjust(32, b'\0')
         user_addr = TestPatches.n1.toBytes(
             hexstr=TestPatches.alice.address).rjust(32, b'\0')
-        amount = TestPatches.n1.toBytes(
-            TestPatches.n1.toWei(1, 'ether')).rjust(32, b'\0')
-        data = handler_addr + user_addr + amount
+        amount = TestPatches.n1.toBytes(1).rjust(32, b'\0')
+        data = token_addr + user_addr + amount
         proposal_id = TestPatches.governance_n1.refund_user_proposal(100, 1,
                                                                      TestPatches.contracts_n1[2], data, "Sorry, I made a mistake!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
