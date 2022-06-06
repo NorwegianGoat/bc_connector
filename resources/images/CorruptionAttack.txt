@@ -7,10 +7,11 @@ fontawesome f1c9 Bridge-C0
 fontawesome f1c9 TokenHandler-C0
 fontawesome f1c9 ERC-C0
 
-
+opt optional
 activate Trudy
 Trudy->BridgeAdmin:adminCorruption(amount, addr)
 deactivateafter Trudy
+end
 activate BridgeAdmin
 BridgeAdmin->Bridge-C0:adminWithdraw(amount, addr)
 activate Bridge-C0
