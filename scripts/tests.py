@@ -56,9 +56,9 @@ class TestPatches(unittest.TestCase):
             key = f.readline().strip()
         cls.alice = cls.n0.eth.account.from_key(key)
         cls.governance_n0 = BridgeGovernance(
-            cls.alice, cls.n0, cls.contracts_n0[-1], cls.contracts_n0[1], bridge_governance_addr=cls.contracts_n0[4])
+            cls.alice, cls.n0, cls.contracts_n0[-1], cls.contracts_n0[1], fee_handler_addr=cls.contracts_n0[4])
         cls.governance_n1 = BridgeGovernance(
-            cls.alice, cls.n1, cls.contracts_n1[-1], cls.contracts_n1[1], bridge_governance_addr=cls.contracts_n1[4])
+            cls.alice, cls.n1, cls.contracts_n1[-1], cls.contracts_n1[1], fee_handler_addr=cls.contracts_n1[4])
         with open(TRUDY_PKEY_PATH) as f:
             key = f.readline().strip()
         cls.trudy = cls.n0.eth.account.from_key(key)
@@ -144,24 +144,23 @@ class TestPatches(unittest.TestCase):
         # Generate some deposits on chain 1
         redeem_tokens(TestPatches.n1, TestPatches.alice,
                       TestPatches.n1.toWei(1, 'ether'), ContractTypes.ERC20)
-        TestPatches.cb_wrapper.approve("http://192.168.1.120:8545", TestPatches.alice.key.hex(
+        TestPatches.cb_wrapper.approve(NODE1_ENDPOINT, TestPatches.alice.key.hex(
         ), 100000, ContractTypes.ERC20, 1, TestPatches.contracts_n1[0], TestPatches.contracts_n1[2])
-        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
-                                       ContractTypes.ERC20, 1, 100,
-                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
+        TestPatches.cb_wrapper.manual_deposit(NODE1_ENDPOINT, TestPatches.n0.eth.chain_id, TestPatches.alice.key.hex(
+        ), 100000, 1, TestPatches.contracts_n1[1], TestPatches.contracts_n1[0], RES_ID)
         history = "resources/contract_storage_tries/45.json"
         if os.path.exists(history):
             os.remove(history)
         response = relayer_client.ask_remap(
-            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
+            "http://192.168.1.110:23456", NODE1_ENDPOINT,
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "OK")
 
     # A relayer asks for remap. Smart contract code is not equal. Should fail.
     def test_06askRemapWrongCode(self):
         # We intentionally break the origin bridge
-        proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[0], RES_ID,
-                                                                TestPatches.contracts_n1[0]],
+        proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[2], RES_ID,
+                                                                TestPatches.contracts_n1[2]],
                                                                "This seems to be a good idea.")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
@@ -173,12 +172,12 @@ class TestPatches(unittest.TestCase):
         if os.path.exists(history):
             os.remove(history)
         response = relayer_client.ask_remap(
-            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
+            "http://192.168.1.110:23456", NODE1_ENDPOINT,
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         # Restore bridge
         proposal_id = TestPatches.governance_n1.remap_proposal([TestPatches.contracts_n1[2], RES_ID,
                                                                 TestPatches.contracts_n1[0]],
-                                                               "This is a good mapping.")
+                                                               "We should really rollback this!.")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
@@ -193,29 +192,27 @@ class TestPatches(unittest.TestCase):
                   '192.168.1.122', '192.168.1.123']
         redeem_tokens(TestPatches.n1, TestPatches.alice,
                       TestPatches.n1.toWei(1, 'ether'), ContractTypes.ERC20)
-        TestPatches.cb_wrapper.approve("http://192.168.1.120:8545", TestPatches.alice.key.hex(
+        TestPatches.cb_wrapper.approve(NODE1_ENDPOINT, TestPatches.alice.key.hex(
         ), 100000, ContractTypes.ERC20, 1, TestPatches.contracts_n1[0], TestPatches.contracts_n1[2])
         for node in CHAIN1:
             ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py',
                                       'halt_node', '&&', 'python3', 'helper.py', 'backup', '--backup_name',
                                       'malicious_rollback', '--override', 'true', '&&', 'python3', 'helper.py', 'start_validator',
                                       '--ip', node, '1>/dev/null', '2>/dev/null'])
-        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
-                                       ContractTypes.ERC20, 1, 100,
-                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
+        TestPatches.cb_wrapper.manual_deposit(NODE1_ENDPOINT, TestPatches.n0.eth.chain_id, TestPatches.alice.key.hex(
+        ), 100000, 1, TestPatches.contracts_n1[1], TestPatches.contracts_n1[0], RES_ID)
         response = relayer_client.ask_remap(
-            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
+            "http://192.168.1.110:23456", NODE1_ENDPOINT,
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         # Restore the old state
         for node in CHAIN1:
             ssh_helper(node, 'root', ['cd', 'edge_utils', '&&', 'python3', 'helper.py', 'halt_node', '&&',
                                       'python3', 'helper.py', 'restore', '--backup_path', './edge/malicious_rollback',
                                       '&&', 'python3', 'helper.py', 'start_validator', '--ip', node, '1>/dev/null', '2>/dev/null'])
-        TestPatches.cb_wrapper.deposit("http://192.168.1.120:8545", TestPatches.alice.key.hex(), 1000000,
-                                       ContractTypes.ERC20, 1, 100,
-                                       TestPatches.contracts_n1[1], TestPatches.alice.address, RES_ID)
+        TestPatches.cb_wrapper.manual_deposit(NODE1_ENDPOINT, TestPatches.n0.eth.chain_id, TestPatches.alice.key.hex(
+        ), 100000, 1, TestPatches.contracts_n1[1], TestPatches.contracts_n1[0], RES_ID)
         response = relayer_client.ask_remap(
-            "http://192.168.1.110:23456", "http://192.168.1.120:8545",
+            "http://192.168.1.110:23456", NODE1_ENDPOINT,
             TestPatches.n1.eth.get_block("latest")['number']-50, TestPatches.contracts_n1[1], RES_ID)
         self.assertEqual(response["response"], "NOK")
 
@@ -239,13 +236,13 @@ class TestPatches(unittest.TestCase):
         self.assertEqual(receipt['status'], 0)
 
     # Admin tries to refund an user sending good data to the smart contract.
-
     def test_09refundGoodData(self):
         token_addr = TestPatches.n1.toBytes(
             hexstr=TestPatches.contracts_n1[0]).rjust(32, b'\0')
         user_addr = TestPatches.n1.toBytes(
             hexstr=TestPatches.alice.address).rjust(32, b'\0')
-        amount = TestPatches.n1.toBytes(1).rjust(32, b'\0')
+        amount = TestPatches.n1.toBytes(
+            TestPatches.n1.toWei(1, "ether")).rjust(32, b'\0')
         data = token_addr + user_addr + amount
         proposal_id = TestPatches.governance_n1.refund_user_proposal(100, 1,
                                                                      TestPatches.contracts_n1[2], data, "Sorry, I made a mistake!")
@@ -260,7 +257,7 @@ class TestPatches(unittest.TestCase):
     # Admin whithdraw the fee after waiting enough time.
     def test_10withdrawFee(self):
         proposal_id = TestPatches.governance_n1.withdraw_fee_proposal(
-            [TestPatches.alice.address, TestPatches.trudy.address], [0,0], "Payday!")
+            [TestPatches.alice.address, TestPatches.trudy.address], [0, 0], "Payday!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
@@ -268,11 +265,11 @@ class TestPatches(unittest.TestCase):
         TestPatches.governance_n1.set_account(TestPatches.alice)
         receipt = TestPatches.governance_n1.execute_proposal(proposal_id)
         self.assertEqual(receipt['status'], 1)
-    
+
     # Admin withdraws the fee to early. Should fail.
     def test_11withdrawFeeTooEarly(self):
         proposal_id = TestPatches.governance_n1.withdraw_fee_proposal(
-            [TestPatches.alice.address, TestPatches.trudy.address], [0,0], "Payday, again!")
+            [TestPatches.alice.address, TestPatches.trudy.address], [0, 0], "Payday, again!")
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         TestPatches.governance_n1.set_account(TestPatches.trudy)
         TestPatches.governance_n1.vote_proposal(proposal_id, Vote.FOR)

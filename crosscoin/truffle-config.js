@@ -76,7 +76,7 @@ module.exports = {
       provider: () => new HDWalletProvider(pkey, `http://192.168.1.110:8545`),
       network_id: 100,
       gas: 5500000,
-      confirmations: 2,
+      confirmations: 0,
       timeoutBlocks: 200,
       skipDryRun: true
     },
@@ -84,7 +84,7 @@ module.exports = {
       provider: () => new HDWalletProvider(pkey, `http://192.168.1.120:8545`),
       network_id: 45,
       gas: 5500000,
-      confirmations: 2,
+      confirmations: 0,
       timeoutBlocks: 200,
       skipDryRun: true
     },

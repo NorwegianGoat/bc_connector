@@ -45,7 +45,7 @@ contract BridgeWithdrawPatch is Bridge {
         uint256 depositAmount;
         uint256 addressLength;
         address sender;
-        (amount, addressLength, sender) = abi.decode(
+        (depositAmount, addressLength, sender) = abi.decode(
             depositData,
             (uint256, uint256, address)
         );

@@ -49,13 +49,13 @@ def trie_maker(source_endpoint: Web3, dest_endpoint: Web3, src_bridge_addr: str,
     if not latest_nonce:
         # Get the latest nonce used by source chain to dest chain
         latest_nonce = contract.functions._depositCounts(
-            dest_endpoint.eth.chainId).call()
+            dest_endpoint.eth.chain_id).call()
     trie = MerkleTools()
     deposits = []
     # Get gets all the deposits records for this chainId up to the latest transfer
     for i in range(0, latest_nonce+1):
         deposit_data = contract.functions._depositRecords(
-            i, dest_endpoint.eth.chainId).call().hex()
+            i, dest_endpoint.eth.chain_id).call().hex()
         deposits.append({"nonce": i, "data": deposit_data})
         trie.add_leaf(deposit_data, True)
     # It creates the tree

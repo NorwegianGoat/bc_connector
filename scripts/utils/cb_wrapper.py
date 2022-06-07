@@ -1,7 +1,9 @@
 import subprocess
 from typing import List
+from web3 import HTTPProvider, Web3
 from utils.sys_mod import check_program
 from utils.resource_manager import available_contracts
+from utils.contracts_utils import load_abi
 from model.contract import ContractTypes
 from model.node import Node
 import logging
@@ -125,6 +127,36 @@ class CBWrapper():
         params.insert(2, 'approve')
         params += ['--recipient', recipient]
         return self._run_command(params)
+
+    # This is used for the patched version of the bridge
+    def manual_deposit(self, gateway: str, chain_id: int, pkey: str, gas: int, amount: int,
+                       bridge: str, token_addr: str, resource_id: str):
+        w3 = Web3(HTTPProvider(gateway))
+        account = w3.eth.account.from_key(pkey)
+        abi = load_abi("crosscoin/build/contracts/BridgeWithdrawPatch.json")
+        contract = w3.eth.contract(address=bridge, abi=abi)
+        # Fire deposit transaction
+        token_addr = w3.toBytes(
+            hexstr=token_addr).rjust(32, b'\0')
+        user_addr = w3.toBytes(
+            hexstr=account.address).rjust(32, b'\0')
+        amount = w3.toBytes(
+            w3.toWei(1, "ether")).rjust(32, b'\0')
+        data = token_addr + user_addr + amount
+        fee_data = w3.toBytes(0).rjust(32, b'\0')
+        t_dict = {"chainId": w3.eth.chain_id,
+                  "nonce": w3.eth.get_transaction_count(account.address, 'pending'),
+                  "gasPrice": w3.toWei(10, "gwei"),
+                  "gas": gas}
+        tx = contract.functions.deposit(
+            chain_id, w3.toBytes(hexstr=resource_id), data, fee_data).buildTransaction(t_dict)
+        signed_tx = w3.eth.account.sign_transaction(tx, account.key)
+        tx_hash = w3.eth.send_raw_transaction(
+            signed_tx.rawTransaction)
+        logging.info(account.address + ' is depositing ' + str(data) + ' on chain ' + str(
+            t_dict['chainId']) + " tx_hash " + tx_hash.hex())
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        print("root update tx_receipt: " + str(receipt))
 
     def deposit(self, gateway: str, pkey: str, gas: int, type: ContractTypes, amount: int, dest: int,
                 bridge: str, recipient: str, resource_id: str):
