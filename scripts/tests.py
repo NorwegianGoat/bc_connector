@@ -72,7 +72,6 @@ class TestPatches(unittest.TestCase):
         cls.governance_n1.vote_proposal(proposal_id, Vote.FOR)
         time.sleep(WAIT)
         receipt = cls.governance_n1.execute_proposal(proposal_id)
-        # TODO: Setup fee handler -> check if it works even if unconfigured
         # Start relayer server and config cb wrapper
         cls.cb_wrapper = CBWrapper()
         cls.relayer_manager = Process(target=RelayerManager, args=(

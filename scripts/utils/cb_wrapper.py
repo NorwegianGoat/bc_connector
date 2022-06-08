@@ -146,7 +146,7 @@ class CBWrapper():
         fee_data = w3.toBytes(0).rjust(32, b'\0')
         t_dict = {"chainId": w3.eth.chain_id,
                   "nonce": w3.eth.get_transaction_count(account.address, 'pending'),
-                  "gasPrice": w3.toWei(10, "gwei"),
+                  "gasPrice": w3.toWei(10,"gwei"),
                   "gas": gas}
         tx = contract.functions.deposit(
             chain_id, w3.toBytes(hexstr=resource_id), data, fee_data).buildTransaction(t_dict)

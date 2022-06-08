@@ -16,7 +16,7 @@ module.exports = function (deployer, network) {
   const InitialRelayers = ['0x222b8e2152E189f5282249877e039EF2c1c0C826']
   const InitialRelayerThreshold = 1
   const Fee = 0
-  const Expiry = 0
+  const Expiry = 100
   deployer.deploy(BridgeWithdrawPatch, DomainId, InitialRelayers, InitialRelayerThreshold, Fee, Expiry).then(function () {
     return deployer.deploy(Erc20Handler, BridgeWithdrawPatch.address);
   });
